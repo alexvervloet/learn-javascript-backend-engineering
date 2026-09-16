@@ -1,11 +1,15 @@
-const {
+import {
   DynamoDBClient,
   CreateTableCommand,
   DescribeTableCommand,
   ListTablesCommand,
   DeleteTableCommand,
-} = require("@aws-sdk/client-dynamodb");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-dynamodb";
+import { config } from "../helpers.js";
+
+// Every field on an AWS SDK response is optional: the service is free to omit
+// one, and the SDK's types say so. The reads below use ?. rather than
+// pretending otherwise.
 
 const db = new DynamoDBClient(config);
 const TABLE = "orders";
@@ -44,10 +48,10 @@ async function main() {
   // --- Describe ---
   console.log("\n=== Describing table ===");
   const { Table } = await db.send(new DescribeTableCommand({ TableName: TABLE }));
-  console.log(`  Status:     ${Table.TableStatus}`);
-  console.log(`  Item count: ${Table.ItemCount}`);
-  console.log(`  Key schema: ${JSON.stringify(Table.KeySchema)}`);
-  console.log(`  GSIs:       ${JSON.stringify((Table.GlobalSecondaryIndexes ?? []).map((g) => g.IndexName))}`);
+  console.log(`  Status:     ${Table?.TableStatus}`);
+  console.log(`  Item count: ${Table?.ItemCount}`);
+  console.log(`  Key schema: ${JSON.stringify(Table?.KeySchema)}`);
+  console.log(`  GSIs:       ${JSON.stringify((Table?.GlobalSecondaryIndexes ?? []).map((g) => g.IndexName))}`);
 
   // --- List all tables ---
   console.log("\n=== Listing tables ===");

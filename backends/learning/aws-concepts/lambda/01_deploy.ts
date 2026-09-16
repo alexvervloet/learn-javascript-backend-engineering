@@ -1,20 +1,26 @@
-const path = require("path");
-const {
+
+import { fileURLToPath } from "node:url";
+
+import path from "node:path";
+import {
   LambdaClient,
   CreateFunctionCommand,
   ListFunctionsCommand,
   GetFunctionConfigurationCommand,
   UpdateFunctionCodeCommand,
   DeleteFunctionCommand,
-} = require("@aws-sdk/client-lambda");
-const { config } = require("../helpers");
-const { zipFile, zipCode } = require("./zip");
+} from "@aws-sdk/client-lambda";
+import { config } from "../helpers.js";
+import { zipFile, zipCode } from "./zip.js";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const lambda = new LambdaClient(config);
 const ROLE = "arn:aws:iam::000000000000:role/lambda-role"; // LocalStack ignores IAM; any ARN works
-const handlerPath = path.join(__dirname, "functions", "hello", "handler.js");
+const handlerPath = path.join(here, "functions", "hello", "handler.js");
 
-async function main() {
+async function main(): Promise<void> {
   // --- Create function ---
   console.log("=== Creating Lambda function ===");
   await lambda.send(

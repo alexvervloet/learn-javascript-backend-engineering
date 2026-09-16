@@ -1,4 +1,4 @@
-const {
+import {
   SQSClient,
   CreateQueueCommand,
   GetQueueAttributesCommand,
@@ -6,19 +6,23 @@ const {
   ReceiveMessageCommand,
   DeleteMessageCommand,
   DeleteQueueCommand,
-} = require("@aws-sdk/client-sqs");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-sqs";
+import { config } from "../helpers.js";
+
+// Every field on an AWS SDK response is optional: the service is free to omit
+// one, and the SDK's types say so. The reads below use ?. rather than
+// pretending otherwise.
 
 const sqs = new SQSClient(config);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function main() {
+async function main(): Promise<void> {
   // --- Create a DLQ ---
   // A DLQ is just a normal queue; you wire it to a source queue via a redrive policy.
   console.log("=== Creating DLQ + source queue ===");
   const { QueueUrl: dlqUrl } = await sqs.send(new CreateQueueCommand({ QueueName: "jobs-dlq" }));
   const dlqAttrs = await sqs.send(new GetQueueAttributesCommand({ QueueUrl: dlqUrl, AttributeNames: ["QueueArn"] }));
-  const dlqArn = dlqAttrs.Attributes.QueueArn;
+  const dlqArn = dlqAttrs.Attributes?.QueueArn;
   console.log(`DLQ ARN: ${dlqArn}`);
 
   // maxReceiveCount=2: after 2 failed receives, SQS moves the message to the DLQ.
@@ -38,7 +42,13 @@ async function main() {
   await sqs.send(new SendMessageCommand({ QueueUrl: sourceUrl, MessageBody: JSON.stringify({ job: "good_job", willFail: false }) }));
   console.log("\nSent 1 poison-pill + 1 good message");
 
-  const process = (msg) => !msg.willFail;
+  // The message body this demo sends: one field decides whether processing
+  // 'fails' and the message ends up on the dead-letter queue.
+  interface JobBody {
+    willFail?: boolean;
+  }
+
+  const process = (msg: JobBody): boolean => !msg.willFail;
 
   // --- Simulate processing with failures ---
   // Each receive without a delete increments the receive count; after
@@ -48,15 +58,24 @@ async function main() {
     console.log(`\n--- Round ${round} ---`);
     await sleep(2000); // wait for the visibility timeout to expire
     const { Messages = [] } = await sqs.send(
-      new ReceiveMessageCommand({ QueueUrl: sourceUrl, MaxNumberOfMessages: 10, WaitTimeSeconds: 1, AttributeNames: ["ApproximateReceiveCount"] })
+      new ReceiveMessageCommand({
+        QueueUrl: sourceUrl,
+        MaxNumberOfMessages: 10,
+        WaitTimeSeconds: 1,
+        // ApproximateReceiveCount is a *message* system attribute, not a queue
+        // attribute. The legacy AttributeNames parameter is typed as
+        // QueueAttributeName[], so asking for it there does not typecheck —
+        // MessageSystemAttributeNames is the field that carries it.
+        MessageSystemAttributeNames: ["ApproximateReceiveCount"],
+      })
     );
-    if (!Messages.length) {
+    if (!Messages?.length) {
       console.log("  No messages available");
       continue;
     }
     for (const msg of Messages) {
-      const body = JSON.parse(msg.Body);
-      const receiveCount = Number(msg.Attributes.ApproximateReceiveCount);
+      const body = JSON.parse(msg.Body ?? "{}");
+      const receiveCount = Number(msg.Attributes?.ApproximateReceiveCount);
       const success = process(body);
       console.log(`  job=${body.job}  receiveCount=${receiveCount}  success=${success}`);
       if (success) {

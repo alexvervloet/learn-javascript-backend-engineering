@@ -1,4 +1,4 @@
-const {
+import {
   SQSClient,
   CreateQueueCommand,
   SendMessageCommand,
@@ -6,13 +6,17 @@ const {
   ReceiveMessageCommand,
   DeleteMessageCommand,
   DeleteQueueCommand,
-} = require("@aws-sdk/client-sqs");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-sqs";
+import { config } from "../helpers.js";
+
+// Every field on an AWS SDK response is optional: the service is free to omit
+// one, and the SDK's types say so. The reads below use ?. rather than
+// pretending otherwise.
 
 const sqs = new SQSClient(config);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function main() {
+async function main(): Promise<void> {
   const { QueueUrl: url } = await sqs.send(
     new CreateQueueCommand({ QueueName: "demo", Attributes: { VisibilityTimeout: "5" } })
   );
@@ -55,9 +59,9 @@ async function main() {
   const { Messages = [] } = await sqs.send(
     new ReceiveMessageCommand({ QueueUrl: url, MaxNumberOfMessages: 5, WaitTimeSeconds: 1, MessageAttributeNames: ["All"] })
   );
-  console.log(`Received ${Messages.length} messages:`);
+  console.log(`Received ${Messages?.length} messages:`);
   for (const msg of Messages) {
-    const body = JSON.parse(msg.Body);
+    const body = JSON.parse(msg.Body ?? "{}");
     console.log(`  [${body.id}] ${body.job}  attrs=${JSON.stringify(Object.keys(msg.MessageAttributes ?? {}))}`);
   }
 
@@ -67,12 +71,15 @@ async function main() {
   for (const msg of Messages) {
     await sqs.send(new DeleteMessageCommand({ QueueUrl: url, ReceiptHandle: msg.ReceiptHandle }));
   }
-  console.log(`Deleted ${Messages.length} messages`);
+  console.log(`Deleted ${Messages?.length} messages`);
 
   // --- Visibility timeout demo ---
   console.log("\n=== Visibility timeout demo ===");
   const first = await sqs.send(new ReceiveMessageCommand({ QueueUrl: url, MaxNumberOfMessages: 1, WaitTimeSeconds: 1 }));
-  const msg = first.Messages[0];
+  // Messages is optional and may be empty — a receive can legitimately return
+  // nothing, which is the whole point of long polling.
+  const msg = first.Messages?.[0];
+  if (!msg) throw new Error("Expected a message to be available");
   console.log(`Received: ${msg.Body} — NOT deleting it, simulating a crash...`);
 
   await sleep(6000); // VisibilityTimeout=5s → message reappears after 5s

@@ -1,11 +1,12 @@
-const {
+import type { QueueAttributeName } from "@aws-sdk/client-sqs";
+import {
   SQSClient,
   CreateQueueCommand,
   ListQueuesCommand,
   GetQueueAttributesCommand,
   DeleteQueueCommand,
-} = require("@aws-sdk/client-sqs");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-sqs";
+import { config } from "../helpers.js";
 
 const sqs = new SQSClient(config);
 
@@ -46,8 +47,15 @@ async function main() {
   // --- Read attributes ---
   console.log("\n=== Queue attributes for 'jobs' ===");
   const { Attributes } = await sqs.send(new GetQueueAttributesCommand({ QueueUrl: jobsUrl, AttributeNames: ["All"] }));
-  for (const key of ["VisibilityTimeout", "MessageRetentionPeriod", "ApproximateNumberOfMessages"]) {
-    console.log(`  ${key}: ${Attributes[key]}`);
+  // The SDK keys queue attributes by its own QueueAttributeName union, so the
+  // list below is typed as that rather than as plain strings.
+  const keys: QueueAttributeName[] = [
+    "VisibilityTimeout",
+    "MessageRetentionPeriod",
+    "ApproximateNumberOfMessages",
+  ];
+  for (const key of keys) {
+    console.log(`  ${key}: ${Attributes?.[key]}`);
   }
 
   // --- Cleanup ---

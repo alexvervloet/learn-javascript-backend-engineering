@@ -1,15 +1,16 @@
-const {
+import {
   S3Client,
   CreateBucketCommand,
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
   DeleteBucketCommand,
-} = require("@aws-sdk/client-s3");
+} from "@aws-sdk/client-s3";
 // In SDK v3 presigning lives in dedicated packages, not on the client itself.
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { createPresignedPost } = require("@aws-sdk/s3-presigned-post");
-const { s3Config } = require("../helpers");
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+import { s3Config } from "../helpers.js";
 
 const s3 = new S3Client(s3Config);
 const BUCKET = "presigned-demo";

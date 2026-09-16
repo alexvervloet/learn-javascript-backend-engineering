@@ -19,4 +19,4 @@ const config = { endpoint: ENDPOINT, region: REGION, credentials };
 // hostname) so requests resolve to localhost:4566 rather than a virtual host.
 const s3Config = { ...config, forcePathStyle: true };
 
-module.exports = { ENDPOINT, REGION, credentials, config, s3Config };
+export { ENDPOINT, REGION, credentials, config, s3Config };

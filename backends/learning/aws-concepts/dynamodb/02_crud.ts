@@ -1,4 +1,4 @@
-const {
+import {
   DynamoDBClient,
   CreateTableCommand,
   PutItemCommand,
@@ -7,8 +7,12 @@ const {
   DeleteItemCommand,
   ScanCommand,
   DeleteTableCommand,
-} = require("@aws-sdk/client-dynamodb");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-dynamodb";
+import { config } from "../helpers.js";
+
+// Every field on an AWS SDK response is optional: the service is free to omit
+// one, and the SDK's types say so. The reads below use ?. rather than
+// pretending otherwise.
 
 // Raw client: items are attribute-value maps ({ S: "..." }, { N: "1" }), the
 // DynamoDB wire format. Section 03 uses the Document client to skip this.
@@ -57,9 +61,9 @@ async function main() {
   // --- GetItem ---
   console.log("\n=== GetItem ===");
   const { Item } = await db.send(new GetItemCommand({ TableName: TABLE, Key: { product_id: { S: "prod-001" } } }));
-  console.log(`  name:  ${Item.name.S}`);
-  console.log(`  price: ${Item.price.N}`);
-  console.log(`  tags:  ${JSON.stringify(Item.tags.SS)}`);
+  console.log(`  name:  ${Item?.name.S}`);
+  console.log(`  price: ${Item?.price.N}`);
+  console.log(`  tags:  ${JSON.stringify(Item?.tags.SS)}`);
 
   // --- UpdateItem with expressions ---
   // SET adds/updates attributes, ADD increments numbers, REMOVE deletes them.
@@ -78,9 +82,9 @@ async function main() {
     })
   );
   const updated = await db.send(new GetItemCommand({ TableName: TABLE, Key: { product_id: { S: "prod-001" } } }));
-  console.log(`  new name:  ${updated.Item.name.S}`);
-  console.log(`  new price: ${updated.Item.price.N}`);
-  console.log(`  new stock: ${updated.Item.stock.N}`);
+  console.log(`  new name:  ${updated.Item?.name.S}`);
+  console.log(`  new price: ${updated.Item?.price.N}`);
+  console.log(`  new stock: ${updated.Item?.stock.N}`);
 
   // --- Conditional update (optimistic-locking pattern) ---
   // Apply only if the condition holds; throws ConditionalCheckFailedException otherwise.
@@ -96,7 +100,7 @@ async function main() {
       })
     );
   } catch (err) {
-    if (err.name === "ConditionalCheckFailedException") {
+    if (err instanceof Error && err.name === "ConditionalCheckFailedException") {
       console.log("  Condition failed: stock is not 0, in_stock not changed (correct)");
     } else {
       throw err;
@@ -109,7 +113,7 @@ async function main() {
   console.log("  Deleted prod-002");
 
   const { Items } = await db.send(new ScanCommand({ TableName: TABLE }));
-  console.log(`  Items remaining: ${JSON.stringify(Items.map((i) => i.product_id.S))}`);
+  console.log(`  Items remaining: ${JSON.stringify(Items?.map((i) => i.product_id.S))}`);
 
   // --- Cleanup ---
   await db.send(new DeleteTableCommand({ TableName: TABLE }));

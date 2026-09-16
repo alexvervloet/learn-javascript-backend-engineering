@@ -31,14 +31,14 @@ in `functions/<name>/handler.js`.
 
 | File | What it teaches |
 |------|----------------|
-| `01_deploy.js` | Zip code, create a function, list, get config, re-deploy, delete |
-| `02_invoke.js` | Invoke sync and async, decode the Payload, handle function errors |
-| `03_s3_trigger.js` | Wire an S3 bucket to trigger a Lambda on `.csv` upload |
+| `01_deploy.ts` | Zip code, create a function, list, get config, re-deploy, delete |
+| `02_invoke.ts` | Invoke sync and async, decode the Payload, handle function errors |
+| `03_s3_trigger.ts` | Wire an S3 bucket to trigger a Lambda on `.csv` upload |
 
 ## How to run
 
 ```bash
-node lambda/01_deploy.js
-node lambda/02_invoke.js
-node lambda/03_s3_trigger.js
+npx tsx lambda/01_deploy.ts
+npx tsx lambda/02_invoke.ts
+npx tsx lambda/03_s3_trigger.ts
 ```

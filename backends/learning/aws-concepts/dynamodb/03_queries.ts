@@ -1,11 +1,11 @@
-const { DynamoDBClient, CreateTableCommand, DeleteTableCommand } = require("@aws-sdk/client-dynamodb");
-const {
+import { DynamoDBClient, CreateTableCommand, DeleteTableCommand } from "@aws-sdk/client-dynamodb";
+import {
   DynamoDBDocumentClient,
   BatchWriteCommand,
   QueryCommand,
   ScanCommand,
-} = require("@aws-sdk/lib-dynamodb");
-const { config } = require("../helpers");
+} from "@aws-sdk/lib-dynamodb";
+import { config } from "../helpers.js";
 
 // The Document client (lib-dynamodb) marshals plain JS objects to/from attribute
 // values automatically, so you write `{ user_id: "u1" }` instead of
@@ -51,7 +51,7 @@ async function main() {
   const all = await doc.send(
     new QueryCommand({ TableName: TABLE, KeyConditionExpression: "user_id = :u", ExpressionAttributeValues: { ":u": "u1" } })
   );
-  for (const item of all.Items) console.log(`  ${item.timestamp}  ${item.event}`);
+  for (const item of all.Items ?? []) console.log(`  ${item.timestamp}  ${item.event}`);
 
   // --- Query by PK + SK range ---
   console.log("\n=== Query: u1 events on 2024-01-01 ===");
@@ -63,7 +63,7 @@ async function main() {
       ExpressionAttributeValues: { ":u": "u1", ":d": "2024-01-01" },
     })
   );
-  for (const item of oneDay.Items) console.log(`  ${item.timestamp}  ${item.event}`);
+  for (const item of oneDay.Items ?? []) console.log(`  ${item.timestamp}  ${item.event}`);
 
   // --- Query with FilterExpression ---
   // The filter runs AFTER DynamoDB fetches the partition — it doesn't reduce RCUs.
@@ -77,7 +77,7 @@ async function main() {
       ExpressionAttributeValues: { ":u": "u1", ":ev": "purchase" },
     })
   );
-  for (const item of purchases.Items) console.log(`  ${item.timestamp}  amount=${item.amount}`);
+  for (const item of purchases.Items ?? []) console.log(`  ${item.timestamp}  amount=${item.amount}`);
 
   // --- Scan (reads the entire table) ---
   // Avoid on large tables — it reads every item. Fine for small/admin datasets.
@@ -85,14 +85,14 @@ async function main() {
   const scan = await doc.send(
     new ScanCommand({ TableName: TABLE, FilterExpression: "#e = :ev", ExpressionAttributeNames: { "#e": "event" }, ExpressionAttributeValues: { ":ev": "purchase" } })
   );
-  for (const item of scan.Items) console.log(`  user=${item.user_id}  ts=${item.timestamp}  amount=${item.amount}`);
+  for (const item of scan.Items ?? []) console.log(`  user=${item.user_id}  ts=${item.timestamp}  amount=${item.amount}`);
 
   // --- Scan with projection (fetch only specific attributes) ---
   console.log("\n=== Scan with projection (user_id + event only) ===");
   const projected = await doc.send(
     new ScanCommand({ TableName: TABLE, ProjectionExpression: "user_id, #e", ExpressionAttributeNames: { "#e": "event" } })
   );
-  for (const item of projected.Items) console.log(`  ${JSON.stringify(item)}`);
+  for (const item of projected.Items ?? []) console.log(`  ${JSON.stringify(item)}`);
 
   // --- Cleanup ---
   await base.send(new DeleteTableCommand({ TableName: TABLE }));

@@ -21,14 +21,14 @@ consumer is running or how fast it processes.
 
 | File | What it teaches |
 |------|----------------|
-| `01_queues.js` | Create standard and FIFO queues, read attributes, delete |
-| `02_messages.js` | Send, batch-send, receive, delete; visibility-timeout behaviour |
-| `03_dead_letter.js` | Wire a DLQ via redrive policy, simulate failures, inspect stuck messages |
+| `01_queues.ts` | Create standard and FIFO queues, read attributes, delete |
+| `02_messages.ts` | Send, batch-send, receive, delete; visibility-timeout behaviour |
+| `03_dead_letter.ts` | Wire a DLQ via redrive policy, simulate failures, inspect stuck messages |
 
 ## How to run
 
 ```bash
-node sqs/01_queues.js
-node sqs/02_messages.js
-node sqs/03_dead_letter.js
+npx tsx sqs/01_queues.ts
+npx tsx sqs/02_messages.ts
+npx tsx sqs/03_dead_letter.ts
 ```

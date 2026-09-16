@@ -1,4 +1,4 @@
-const {
+import {
   S3Client,
   CreateBucketCommand,
   PutObjectCommand,
@@ -9,8 +9,8 @@ const {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   DeleteBucketCommand,
-} = require("@aws-sdk/client-s3");
-const { s3Config } = require("../helpers");
+} from "@aws-sdk/client-s3";
+import { s3Config } from "../helpers.js";
 
 const s3 = new S3Client(s3Config);
 const BUCKET = "objects-demo";
@@ -39,7 +39,7 @@ async function main() {
   console.log("\n=== Downloading an object ===");
   const got = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: "config/settings.json" }));
   // The body is a stream; transformToString() is the SDK v3 convenience helper.
-  console.log(`config/settings.json: ${await got.Body.transformToString()}`);
+  console.log(`config/settings.json: ${await got.Body?.transformToString()}`);
 
   // --- Object metadata ---
   console.log("\n=== Object metadata (head) ===");

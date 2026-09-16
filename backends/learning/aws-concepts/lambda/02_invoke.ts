@@ -1,23 +1,34 @@
-const path = require("path");
-const {
+
+import { fileURLToPath } from "node:url";
+
+import path from "node:path";
+import {
   LambdaClient,
   CreateFunctionCommand,
   InvokeCommand,
   UpdateFunctionCodeCommand,
   DeleteFunctionCommand,
-} = require("@aws-sdk/client-lambda");
-const { config } = require("../helpers");
-const { zipFile, zipCode } = require("./zip");
+} from "@aws-sdk/client-lambda";
+import { config } from "../helpers.js";
+import { zipFile, zipCode } from "./zip.js";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const lambda = new LambdaClient(config);
 const ROLE = "arn:aws:iam::000000000000:role/lambda-role";
-const handlerPath = path.join(__dirname, "functions", "hello", "handler.js");
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const handlerPath = path.join(here, "functions", "hello", "handler.js");
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // The SDK returns Payload as a byte array; decode + JSON.parse it.
-const decode = (payload) => JSON.parse(Buffer.from(payload).toString("utf8"));
+// Lambda returns Payload as a byte array. What is inside is whatever the
+// function returned, so the decoded value is unknown until a caller says.
+// Payload is optional on the response — an invoke can fail before the
+// function produced one — so the parameter admits that.
+const decode = (payload: Uint8Array | undefined): unknown =>
+  payload === undefined ? null : JSON.parse(Buffer.from(payload).toString("utf8"));
 
-async function main() {
+async function main(): Promise<void> {
   await lambda.send(
     new CreateFunctionCommand({
       FunctionName: "hello",

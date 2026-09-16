@@ -1,24 +1,28 @@
-const { SNSClient, CreateTopicCommand, SubscribeCommand, PublishCommand, DeleteTopicCommand } = require("@aws-sdk/client-sns");
-const {
+import { SNSClient, CreateTopicCommand, SubscribeCommand, PublishCommand, DeleteTopicCommand } from "@aws-sdk/client-sns";
+import {
   SQSClient,
   CreateQueueCommand,
   GetQueueAttributesCommand,
   SetQueueAttributesCommand,
   ReceiveMessageCommand,
   DeleteQueueCommand,
-} = require("@aws-sdk/client-sqs");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-sqs";
+import { config } from "../helpers.js";
+
+// Every field on an AWS SDK response is optional: the service is free to omit
+// one, and the SDK's types say so. The reads below use ?. rather than
+// pretending otherwise.
 
 const sns = new SNSClient(config);
 const sqs = new SQSClient(config);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function main() {
+async function main(): Promise<void> {
   // Setup: a topic + one SQS subscriber so we can inspect what arrives.
   const { TopicArn: topicArn } = await sns.send(new CreateTopicCommand({ Name: "events" }));
   const { QueueUrl: queueUrl } = await sqs.send(new CreateQueueCommand({ QueueName: "events-inbox" }));
   const { Attributes } = await sqs.send(new GetQueueAttributesCommand({ QueueUrl: queueUrl, AttributeNames: ["QueueArn"] }));
-  const queueArn = Attributes.QueueArn;
+  const queueArn = Attributes?.QueueArn;
 
   // Allow SNS to write to the SQS queue.
   await sqs.send(
@@ -70,7 +74,7 @@ async function main() {
   const { Messages = [] } = await sqs.send(new ReceiveMessageCommand({ QueueUrl: queueUrl, MaxNumberOfMessages: 10, WaitTimeSeconds: 2 }));
   for (const msg of Messages) {
     // SNS wraps the message in an envelope — the real body is in `Message`.
-    const envelope = JSON.parse(msg.Body);
+    const envelope = JSON.parse(msg.Body ?? "{}");
     console.log(`  Type:    ${envelope.Type}`);
     console.log(`  Subject: ${envelope.Subject ?? "—"}`);
     console.log(`  Message: ${envelope.Message}`);

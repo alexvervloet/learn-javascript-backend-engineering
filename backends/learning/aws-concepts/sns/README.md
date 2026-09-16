@@ -26,14 +26,14 @@ HTTP endpoints, email, Lambda, and more.
 
 | File | What it teaches |
 |------|----------------|
-| `01_topics.js` | Create, list, describe, set attributes, delete topics |
-| `02_publish.js` | Publish with subject + message attributes; read the SNS→SQS envelope |
-| `03_fan_out.js` | Fan-out: one topic → three SQS queues with a filter policy |
+| `01_topics.ts` | Create, list, describe, set attributes, delete topics |
+| `02_publish.ts` | Publish with subject + message attributes; read the SNS→SQS envelope |
+| `03_fan_out.ts` | Fan-out: one topic → three SQS queues with a filter policy |
 
 ## How to run
 
 ```bash
-node sns/01_topics.js
-node sns/02_publish.js
-node sns/03_fan_out.js
+npx tsx sns/01_topics.ts
+npx tsx sns/02_publish.ts
+npx tsx sns/03_fan_out.ts
 ```

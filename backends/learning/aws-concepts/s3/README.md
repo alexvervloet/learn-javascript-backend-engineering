@@ -16,9 +16,9 @@ look like paths but S3 treats them as flat strings.
 
 | File | What it teaches |
 |------|----------------|
-| `01_buckets.js` | Create, list, tag, version, and delete buckets |
-| `02_objects.js` | Upload, list (with prefix), download, copy, delete objects |
-| `03_presigned_urls.js` | Generate GET, PUT, and POST presigned URLs (s3-request-presigner / s3-presigned-post) |
+| `01_buckets.ts` | Create, list, tag, version, and delete buckets |
+| `02_objects.ts` | Upload, list (with prefix), download, copy, delete objects |
+| `03_presigned_urls.ts` | Generate GET, PUT, and POST presigned URLs (s3-request-presigner / s3-presigned-post) |
 
 ## How to run
 
@@ -26,7 +26,7 @@ look like paths but S3 treats them as flat strings.
 # From aws-concepts/
 docker compose up -d
 
-node s3/01_buckets.js
-node s3/02_objects.js
-node s3/03_presigned_urls.js
+npx tsx s3/01_buckets.ts
+npx tsx s3/02_objects.ts
+npx tsx s3/03_presigned_urls.ts
 ```

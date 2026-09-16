@@ -1,6 +1,9 @@
-const path = require("path");
-const { LambdaClient, CreateFunctionCommand, AddPermissionCommand, DeleteFunctionCommand } = require("@aws-sdk/client-lambda");
-const {
+
+import { fileURLToPath } from "node:url";
+
+import path from "node:path";
+import { LambdaClient, CreateFunctionCommand, AddPermissionCommand, DeleteFunctionCommand } from "@aws-sdk/client-lambda";
+import {
   S3Client,
   CreateBucketCommand,
   PutBucketNotificationConfigurationCommand,
@@ -8,19 +11,22 @@ const {
   ListObjectsV2Command,
   DeleteObjectCommand,
   DeleteBucketCommand,
-} = require("@aws-sdk/client-s3");
-const { config, s3Config } = require("../helpers");
-const { zipFile } = require("./zip");
+} from "@aws-sdk/client-s3";
+import { config, s3Config } from "../helpers.js";
+import { zipFile } from "./zip.js";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const lambda = new LambdaClient(config);
 const s3 = new S3Client(s3Config);
 const ROLE = "arn:aws:iam::000000000000:role/lambda-role";
 const BUCKET = "uploads-trigger-demo";
 const FN = "s3-processor";
-const handlerPath = path.join(__dirname, "functions", "s3-processor", "handler.js");
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const handlerPath = path.join(here, "functions", "s3-processor", "handler.js");
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function main() {
+async function main(): Promise<void> {
   // --- Deploy the function ---
   console.log("=== Deploying s3-processor Lambda ===");
   const fn = await lambda.send(

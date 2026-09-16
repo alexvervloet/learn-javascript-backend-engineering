@@ -1,36 +1,46 @@
-const { SNSClient, CreateTopicCommand, SubscribeCommand, PublishCommand, DeleteTopicCommand } = require("@aws-sdk/client-sns");
-const {
+import { SNSClient, CreateTopicCommand, SubscribeCommand, PublishCommand, DeleteTopicCommand } from "@aws-sdk/client-sns";
+import {
   SQSClient,
   CreateQueueCommand,
   GetQueueAttributesCommand,
   SetQueueAttributesCommand,
   ReceiveMessageCommand,
   DeleteQueueCommand,
-} = require("@aws-sdk/client-sqs");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-sqs";
+import { config } from "../helpers.js";
+
+// Every field on an AWS SDK response is optional: the service is free to omit
+// one, and the SDK's types say so. The reads below use ?. rather than
+// pretending otherwise.
 
 const sns = new SNSClient(config);
 const sqs = new SQSClient(config);
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Fan-out: one "order.placed" event → billing AND inventory queues at once. Each
 // service owns its queue and processes independently — total decoupling.
-async function main() {
+async function main(): Promise<void> {
   console.log("=== Fan-out: SNS topic → multiple SQS queues ===\n");
 
   const { TopicArn: topicArn } = await sns.send(new CreateTopicCommand({ Name: "order-events" }));
 
-  const makeQueue = async (name) => {
+  // The queue handle each helper below passes around.
+  interface QueueHandle {
+    url: string | undefined;
+    arn: string | undefined;
+  }
+
+  const makeQueue = async (name: string): Promise<QueueHandle> => {
     const { QueueUrl } = await sqs.send(new CreateQueueCommand({ QueueName: name }));
     const { Attributes } = await sqs.send(new GetQueueAttributesCommand({ QueueUrl, AttributeNames: ["QueueArn"] }));
-    return { url: QueueUrl, arn: Attributes.QueueArn };
+    return { url: QueueUrl, arn: Attributes?.QueueArn };
   };
 
   const billing = await makeQueue("billing-queue");
   const inventory = await makeQueue("inventory-queue");
   const alerts = await makeQueue("alerts-queue");
 
-  const allowSns = (queue) =>
+  const allowSns = (queue: QueueHandle) =>
     sqs.send(
       new SetQueueAttributesCommand({
         QueueUrl: queue.url,
@@ -97,9 +107,14 @@ async function main() {
   await sleep(1000);
 
   // --- Inspect each queue ---
-  const drain = async (queue, name) => {
+  const drain = async (queue: QueueHandle, name: string): Promise<void> => {
     const { Messages = [] } = await sqs.send(new ReceiveMessageCommand({ QueueUrl: queue.url, MaxNumberOfMessages: 10, WaitTimeSeconds: 2 }));
-    const orders = Messages.map((m) => JSON.parse(JSON.parse(m.Body).Message).order_id);
+    // SNS wraps the payload in an envelope, so the body is parsed twice. Both
+    // parses produce unknown, hence the stated shape.
+    const orders = Messages.map((m) => {
+      const envelope = JSON.parse(m.Body ?? "{}") as { Message: string };
+      return (JSON.parse(envelope.Message) as { order_id: string }).order_id;
+    });
     console.log(`  ${name}: ${JSON.stringify(orders)}`);
   };
 

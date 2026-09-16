@@ -21,23 +21,23 @@ date? Model that into the keys or a GSI upfront.
 
 ## Raw vs Document client
 
-- `02_crud.js` uses the **raw** `DynamoDBClient` with attribute-value maps
+- `02_crud.ts` uses the **raw** `DynamoDBClient` with attribute-value maps
   (`{ S: "x" }`, `{ N: "1" }`) — the wire format.
-- `03_queries.js` uses the **Document client** (`@aws-sdk/lib-dynamodb`), which
+- `03_queries.ts` uses the **Document client** (`@aws-sdk/lib-dynamodb`), which
   marshals plain JS objects to and from attribute-value maps automatically.
 
 ## What the files cover
 
 | File | What it teaches |
 |------|----------------|
-| `01_tables.js` | Create a composite-key table, add a GSI, describe the table |
-| `02_crud.js` | PutItem, GetItem, UpdateItem (expressions), conditional update, DeleteItem |
-| `03_queries.js` | Query by PK, PK+SK range, FilterExpression, Scan, projection |
+| `01_tables.ts` | Create a composite-key table, add a GSI, describe the table |
+| `02_crud.ts` | PutItem, GetItem, UpdateItem (expressions), conditional update, DeleteItem |
+| `03_queries.ts` | Query by PK, PK+SK range, FilterExpression, Scan, projection |
 
 ## How to run
 
 ```bash
-node dynamodb/01_tables.js
-node dynamodb/02_crud.js
-node dynamodb/03_queries.js
+npx tsx dynamodb/01_tables.ts
+npx tsx dynamodb/02_crud.ts
+npx tsx dynamodb/03_queries.ts
 ```

@@ -1,4 +1,4 @@
-const {
+import {
   S3Client,
   CreateBucketCommand,
   ListBucketsCommand,
@@ -7,8 +7,8 @@ const {
   PutBucketVersioningCommand,
   GetBucketVersioningCommand,
   DeleteBucketCommand,
-} = require("@aws-sdk/client-s3");
-const { s3Config } = require("../helpers");
+} from "@aws-sdk/client-s3";
+import { s3Config } from "../helpers.js";
 
 const s3 = new S3Client(s3Config);
 

@@ -44,9 +44,9 @@ Each script is self-contained — it sets up what it needs, demonstrates the
 concept, and cleans up. Run from the `aws-concepts/` directory:
 
 ```bash
-node s3/01_buckets.js
-node dynamodb/02_crud.js
-node lambda/02_invoke.js
+npx tsx s3/01_buckets.ts
+npx tsx dynamodb/02_crud.ts
+npx tsx lambda/02_invoke.ts
 # etc.
 ```
 

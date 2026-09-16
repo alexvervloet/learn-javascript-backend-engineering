@@ -91,3 +91,25 @@ worth reading properly.
 been skimming, read the line rather than just satisfying it. The fix is a
 `safeEqual` helper that compares lengths first and returns false, which is both
 correct and still constant-time for equal-length inputs.
+
+## Two AWS files must stay JavaScript, and one had a real API misuse
+
+**Expected:** "convert everything" would mean every file.
+
+**What happened:** `aws-concepts/lambda/functions/*/handler.js` are not repo
+source. `01_deploy.ts` zips them and uploads them to Lambda, where they run under
+the `nodejs20.x` runtime with a configured handler of `"handler.handler"` — which
+means a file literally named `handler.js` inside the zip. Converting them would
+need a bundling step before upload, which is a different lesson than the one the
+module teaches. They stay CommonJS, with a comment at the top of each saying why.
+
+Separately, `sqs/03_dead_letter.ts` asked for `ApproximateReceiveCount` through
+`AttributeNames`, which the SDK types as `QueueAttributeName[]`.
+`ApproximateReceiveCount` is a *message* system attribute; the field that carries
+it is `MessageSystemAttributeNames`. The call had been working against the
+legacy parameter and the types are what surfaced it.
+
+**What to do differently:** before converting a directory, ask which files are
+inputs to a runtime you do not control. Deployment artifacts, migration files a
+CLI discovers by name, and anything zipped and shipped elsewhere have their own
+constraints, and a blanket rename will break them quietly.

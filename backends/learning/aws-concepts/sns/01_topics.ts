@@ -1,12 +1,16 @@
-const {
+import {
   SNSClient,
   CreateTopicCommand,
   ListTopicsCommand,
   GetTopicAttributesCommand,
   SetTopicAttributesCommand,
   DeleteTopicCommand,
-} = require("@aws-sdk/client-sns");
-const { config } = require("../helpers");
+} from "@aws-sdk/client-sns";
+import { config } from "../helpers.js";
+
+// Every field on an AWS SDK response is optional: the service is free to omit
+// one, and the SDK's types say so. The reads below use ?. rather than
+// pretending otherwise.
 
 const sns = new SNSClient(config);
 
@@ -27,13 +31,13 @@ async function main() {
   console.log("\n=== Topic attributes ===");
   const { Attributes } = await sns.send(new GetTopicAttributesCommand({ TopicArn: ordersArn }));
   for (const key of ["TopicArn", "DisplayName", "SubscriptionsConfirmed", "SubscriptionsPending"]) {
-    console.log(`  ${key}: ${Attributes[key] ?? "—"}`);
+    console.log(`  ${key}: ${Attributes?.[key] ?? "—"}`);
   }
 
   // --- Set display name ---
   await sns.send(new SetTopicAttributesCommand({ TopicArn: ordersArn, AttributeName: "DisplayName", AttributeValue: "Order Events" }));
   const updated = await sns.send(new GetTopicAttributesCommand({ TopicArn: ordersArn }));
-  console.log(`\nDisplayName updated to: '${updated.Attributes.DisplayName}'`);
+  console.log(`\nDisplayName updated to: '${updated.Attributes?.DisplayName}'`);
 
   // --- Delete ---
   console.log("\n=== Deleting topics ===");
