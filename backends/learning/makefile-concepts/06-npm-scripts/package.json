@@ -2,23 +2,21 @@
   "name": "npm-scripts-demo",
   "version": "1.0.0",
   "private": true,
-  "description": "The JS-native task runner — npm scripts as a Makefile alternative.",
+  "type": "module",
+  "description": "The JS-native task runner \u2014 npm scripts as a Makefile alternative.",
   "scripts": {
     "//1": "Run with: npm run <name>  (npm test / npm start have shorthands).",
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "start": "tsx server.ts",
+    "dev": "tsx watch server.ts",
     "lint": "prettier --check .",
     "format": "prettier --write .",
     "test": "jest",
     "test:watch": "jest --watch",
-
     "//2": "pre/post hooks run automatically around a script of the same name.",
     "pretest": "npm run lint",
-    "build": "node build.js",
-
+    "build": "tsx build.ts",
     "//3": "Compose scripts by calling other scripts (the 'target chain').",
     "ci": "npm run lint && npm test && npm run build",
-
     "//4": "Pass args after -- :  npm run test -- --coverage",
     "clean": "rm -rf dist coverage"
   }
