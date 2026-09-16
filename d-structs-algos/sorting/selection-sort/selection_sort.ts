@@ -1,4 +1,4 @@
-function selectionSort(nums) {
+function selectionSort(nums: number[]): number[] {
   for (let i = 0; i < nums.length; i++) {
     let smallestIdx = i;
     for (let j = i + 1; j < nums.length; j++) {
@@ -11,4 +11,4 @@ function selectionSort(nums) {
   return nums;
 }
 
-module.exports = { selectionSort };
+export { selectionSort };

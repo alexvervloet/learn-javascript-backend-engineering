@@ -1,4 +1,4 @@
-function bubbleSort(nums) {
+function bubbleSort(nums: number[]): number[] {
   let swapping = true;
   let end = nums.length;
   while (swapping === true) {
@@ -16,4 +16,4 @@ function bubbleSort(nums) {
   return nums;
 }
 
-module.exports = { bubbleSort };
+export { bubbleSort };

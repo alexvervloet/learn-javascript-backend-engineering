@@ -1,4 +1,4 @@
-function quickSort(nums, low, high) {
+function quickSort(nums: number[], low: number, high: number): void {
   if (low < high) {
     const pivotIndex = partition(nums, low, high);
     quickSort(nums, low, pivotIndex - 1);
@@ -6,7 +6,7 @@ function quickSort(nums, low, high) {
   }
 }
 
-function partition(nums, low, high) {
+function partition(nums: number[], low: number, high: number): number {
   const pivot = nums[high];
   let i = low - 1;
   for (let j = low; j < high; j++) {
@@ -19,4 +19,4 @@ function partition(nums, low, high) {
   return i + 1;
 }
 
-module.exports = { quickSort, partition };
+export { quickSort, partition };

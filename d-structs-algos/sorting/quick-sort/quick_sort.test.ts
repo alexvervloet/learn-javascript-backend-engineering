@@ -1,6 +1,7 @@
-const { quickSort } = require("./quick_sort");
+import { test, expect } from "@jest/globals";
+import { quickSort } from "./quick_sort.js";
 
-const cases = [
+const cases: [number[], number, number, number[]][] = [
   [[2, 1, 3], 0, 2, [1, 2, 3]],
   [[9, 6, 2, 1, 8, 7], 0, 5, [1, 2, 6, 7, 8, 9]],
   [[], 0, -1, []],

@@ -1,6 +1,7 @@
-const { bubbleSort } = require("./bubble_sort");
+import { test, expect } from "@jest/globals";
+import { bubbleSort } from "./bubble_sort.js";
 
-const cases = [
+const cases: [number[], number[]][] = [
   [[5, 7, 3, 6, 8], [3, 5, 6, 7, 8]],
   [[2, 1], [1, 2]],
   [[], []],

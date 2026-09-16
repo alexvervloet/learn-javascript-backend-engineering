@@ -1,6 +1,7 @@
-const { mergeSort } = require("./merge_sort");
+import { test, expect } from "@jest/globals";
+import { mergeSort } from "./merge_sort.js";
 
-const cases = [
+const cases: [number[], number[]][] = [
   [[3, 2, 1], [1, 2, 3]],
   [[5, 4, 3, 2, 1], [1, 2, 3, 4, 5]],
   [[], []],

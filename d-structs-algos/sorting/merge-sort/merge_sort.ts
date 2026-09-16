@@ -1,4 +1,4 @@
-function mergeSort(nums) {
+function mergeSort(nums: number[]): number[] {
   if (nums.length < 2) {
     return nums;
   }
@@ -10,8 +10,8 @@ function mergeSort(nums) {
   return merge(sortedLeft, sortedRight);
 }
 
-function merge(first, second) {
-  let merged = [];
+function merge(first: number[], second: number[]): number[] {
+  let merged: number[] = [];
   let i = 0;
   let j = 0;
   while (i < first.length && j < second.length) {
@@ -32,4 +32,4 @@ function merge(first, second) {
   return merged;
 }
 
-module.exports = { mergeSort, merge };
+export { mergeSort, merge };

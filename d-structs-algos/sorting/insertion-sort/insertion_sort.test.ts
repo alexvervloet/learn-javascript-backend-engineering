@@ -1,6 +1,7 @@
-const { insertionSort } = require("./insertion_sort");
+import { test, expect } from "@jest/globals";
+import { insertionSort } from "./insertion_sort.js";
 
-const cases = [
+const cases: [number[], number[]][] = [
   [[4, 3, 2, 1], [1, 2, 3, 4]],
   [[9, 5, -3, 7], [-3, 5, 7, 9]],
   [[], []],
