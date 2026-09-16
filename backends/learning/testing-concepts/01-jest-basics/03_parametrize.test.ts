@@ -9,18 +9,21 @@
  *   - Tagged template literal with named columns (most readable for many fields)
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/01-jest-basics/03_parametrize
+ *   npm test -- backends/learning/testing-concepts/01-jest-basics/03_parametrize
  */
+
+import { describe, test, expect } from "@jest/globals";
 
 // ---------------------------------------------------------------------------
 // Code under test
 // ---------------------------------------------------------------------------
 
-const isEven = (n) => n % 2 === 0;
-const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
-const normalizeEmail = (email) => email.trim().toLowerCase();
+const isEven = (n: number): boolean => n % 2 === 0;
+const clamp = (value: number, lo: number, hi: number): number =>
+  Math.max(lo, Math.min(hi, value));
+const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
-function parsePositiveInt(s) {
+function parsePositiveInt(s: string): number {
   const n = Number(s);
   if (!Number.isInteger(n)) throw new Error(`Not an integer: ${s}`);
   if (n <= 0) throw new Error(`Expected positive integer, got ${n}`);
@@ -64,9 +67,16 @@ describe("clamp", () => {
     ${15} | ${1} | ${10} | ${10}    | ${"above max"}
     ${1}  | ${1} | ${10} | ${1}     | ${"at min boundary"}
     ${10} | ${1} | ${10} | ${10}    | ${"at max boundary"}
-  `("$label: clamp($value, $lo, $hi) === $expected", ({ value, lo, hi, expected }) => {
-    expect(clamp(value, lo, hi)).toBe(expected);
-  });
+  `(
+    "$label: clamp($value, $lo, $hi) === $expected",
+    // This is the tradeoff between the two table forms. The array table above
+    // keeps its element types, so `input` and `expected` arrive as strings. A
+    // tagged template is a string at compile time, so Jest can only type a row
+    // as Record<string, string | number> and the conversion is on the caller.
+    ({ value, lo, hi, expected }: Record<string, string | number>) => {
+      expect(clamp(Number(value), Number(lo), Number(hi))).toBe(Number(expected));
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------

@@ -14,15 +14,26 @@
  *   beforeAll (top level)          → once for the whole file
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/01-jest-basics/02_setup_teardown
+ *   npm test -- backends/learning/testing-concepts/01-jest-basics/02_setup_teardown
  */
+
+import { describe, test, expect, beforeEach, afterEach, beforeAll } from "@jest/globals";
 
 // ---------------------------------------------------------------------------
 // 1. Factory helper — the JS replacement for a value fixture
 //    A plain function returning a fresh object each call. No magic injection.
 // ---------------------------------------------------------------------------
 
-function makeUser(overrides = {}) {
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+// Partial<User> is what makes the overrides argument safe: any subset of
+// User's fields is allowed, but an unknown key or a wrong type is not.
+function makeUser(overrides: Partial<User> = {}): User {
   return { id: 1, name: "Alice", email: "alice@example.com", role: "user", ...overrides };
 }
 
@@ -48,7 +59,9 @@ test("mutation does not bleed — each call is a fresh object", () => {
 // ---------------------------------------------------------------------------
 
 describe("tracked list (beforeEach/afterEach)", () => {
-  let items;
+  // Declared here and filled in by beforeEach, so the annotation has to be
+  // written out: there is no initialiser for the compiler to infer from.
+  let items: string[];
 
   beforeEach(() => {
     items = []; // setup: fresh list per test
@@ -73,7 +86,7 @@ describe("tracked list (beforeEach/afterEach)", () => {
 // ---------------------------------------------------------------------------
 
 describe("shared counter (beforeAll)", () => {
-  let state;
+  let state: { count: number };
 
   beforeAll(() => {
     state = { count: 0 }; // created ONCE for the whole block
@@ -94,8 +107,17 @@ describe("shared counter (beforeAll)", () => {
 // 4. Composing factories — build on top of a base factory
 // ---------------------------------------------------------------------------
 
-function makeAdmin(overrides = {}) {
-  return makeUser({ role: "admin", permissions: ["read", "write", "delete"], ...overrides });
+interface Admin extends User {
+  permissions: string[];
+}
+
+function makeAdmin(overrides: Partial<Admin> = {}): Admin {
+  return {
+    ...makeUser(),
+    role: "admin",
+    permissions: ["read", "write", "delete"],
+    ...overrides,
+  };
 }
 
 test("admin has the correct role", () => {

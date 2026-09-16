@@ -1,32 +1,34 @@
 /**
  * Jest Basics
  * ===========
- * Jest discovers tests by scanning for files matching `*.test.js` (configured in
+ * Jest discovers tests by scanning for files matching `*.test.ts` (configured in
  * the root jest.config.js), then runs each `test(...)` / `it(...)` block.
  *
  * Assertions go through the `expect(...)` API with matchers (`.toBe`, `.toEqual`,
  * `.toThrow`, …). Matchers produce the rich diff output on failure.
  *
- * Discovery rules (this repo): files named `*.test.js`. Group with `describe`.
+ * Discovery rules (this repo): files named `*.test.ts`. Group with `describe`.
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/01-jest-basics/01_basics
+ *   npm test -- backends/learning/testing-concepts/01-jest-basics/01_basics
  */
+
+import { describe, test, expect } from "@jest/globals";
 
 // ---------------------------------------------------------------------------
 // Code under test
 // ---------------------------------------------------------------------------
 
-function add(a, b) {
+function add(a: number, b: number): number {
   return a + b;
 }
 
-function divide(a, b) {
+function divide(a: number, b: number): number {
   if (b === 0) throw new Error("Cannot divide by zero");
   return a / b;
 }
 
-function slugify(text) {
+function slugify(text: string): string {
   return text.toLowerCase().trim().replace(/ /g, "-");
 }
 

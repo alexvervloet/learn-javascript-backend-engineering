@@ -11,10 +11,12 @@
  *   custom marks    → filter by name with `jest -t "slow"` or group with describe
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/01-jest-basics/04_marks
- *   npx jest .../04_marks -t "slow"        # only tests whose name matches "slow"
- *   npx jest .../04_marks -t "^(?!.*slow)" # everything except "slow"
+ *   npm test -- backends/learning/testing-concepts/01-jest-basics/04_marks
+ *   npm test -- .../04_marks -t "slow"        # only tests whose name matches "slow"
+ *   npm test -- .../04_marks -t "^(?!.*slow)" # everything except "slow"
  */
+
+import { describe, test, expect, beforeEach, afterEach } from "@jest/globals";
 
 // ---------------------------------------------------------------------------
 // 1. skip — unconditionally skip (placeholder for unimplemented work)
@@ -76,10 +78,16 @@ test("fast calculation", () => {
 // ---------------------------------------------------------------------------
 
 describe("logged tests", () => {
-  const callLog = [];
+  const callLog: string[] = [];
 
-  beforeEach(() => callLog.push("start"));
-  afterEach(() => callLog.push("end"));
+  // The arrow bodies are braced so the hooks return void rather than the
+  // number push() hands back, which Jest would read as a return value.
+  beforeEach(() => {
+    callLog.push("start");
+  });
+  afterEach(() => {
+    callLog.push("end");
+  });
 
   test("first logged test", () => {
     expect(true).toBe(true);
