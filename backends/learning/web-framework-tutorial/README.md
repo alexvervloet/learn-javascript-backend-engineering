@@ -8,9 +8,9 @@ section adds one concept on top of the last.
 ## Structure
 
 ```
-tutorial/server.js   — core concepts (path/query params, bodies, validation,
+tutorial/server.ts   — core concepts (path/query params, bodies, validation,
                        files, cookies, headers, errors, SQLite CRUD)
-advanced/server.js   — advanced guide (streaming, SSE, custom responses,
+advanced/server.ts   — advanced guide (streaming, SSE, custom responses,
                        basic auth, sub-apps, WebSockets, settings, pagination)
 ```
 
@@ -18,8 +18,8 @@ advanced/server.js   — advanced guide (streaming, SSE, custom responses,
 
 ```bash
 npm install                  # from the repo root
-node tutorial/server.js      # http://localhost:8000
-node advanced/server.js      # http://localhost:8001
+npx tsx tutorial/server.ts      # http://localhost:8000
+npx tsx advanced/server.ts      # http://localhost:8001
 ```
 
 ```bash

@@ -2,10 +2,11 @@
   "name": "web-framework-tutorial",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "A guided tour of building HTTP APIs with Express, Zod, and SQLite.",
   "scripts": {
-    "start": "node tutorial/server.js",
-    "start:advanced": "node advanced/server.js"
+    "start": "tsx tutorial/server.ts",
+    "start:advanced": "tsx advanced/server.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
