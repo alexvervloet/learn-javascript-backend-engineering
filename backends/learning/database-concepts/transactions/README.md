@@ -33,10 +33,10 @@ Most databases default to **Read Committed**. PostgreSQL defaults to **Read Comm
 
 | File | What it teaches |
 |---|---|
-| `01_acid.js` | Demonstrates each ACID property with concrete examples: what happens without them |
-| `02_isolation.js` | Sets different isolation levels and shows the anomalies each one prevents |
-| `03_savepoints.js` | Savepoints: partial rollbacks within a transaction — roll back part of the work without losing all of it |
-| `04_locking.js` | How the database prevents two transactions from conflicting: row locks, table locks, deadlocks |
+| `01_acid.ts` | Demonstrates each ACID property with concrete examples: what happens without them |
+| `02_isolation.ts` | Sets different isolation levels and shows the anomalies each one prevents |
+| `03_savepoints.ts` | Savepoints: partial rollbacks within a transaction — roll back part of the work without losing all of it |
+| `04_locking.ts` | How the database prevents two transactions from conflicting: row locks, table locks, deadlocks |
 
 ## How to run
 
@@ -44,8 +44,8 @@ Most databases default to **Read Committed**. PostgreSQL defaults to **Read Comm
 # Requires PostgreSQL
 docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 
-node 01_acid.js
-node 02_isolation.js
-node 03_savepoints.js
-node 04_locking.js
+npx tsx 01_acid.ts
+npx tsx 02_isolation.ts
+npx tsx 03_savepoints.ts
+npx tsx 04_locking.ts
 ```

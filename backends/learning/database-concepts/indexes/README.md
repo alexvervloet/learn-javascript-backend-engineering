@@ -32,8 +32,8 @@ Indexes also use disk space. A large table with many indexes can use more disk f
 
 | File | What it teaches |
 |---|---|
-| `01_index_types.js` | Creating B-tree, partial, and composite indexes; demonstrating the speed difference with and without an index |
-| `02_explain_analyze.js` | Using `EXPLAIN ANALYZE` to see the query plan — the database's step-by-step plan for answering your query, and whether it's using your index |
+| `01_index_types.ts` | Creating B-tree, partial, and composite indexes; demonstrating the speed difference with and without an index |
+| `02_explain_analyze.ts` | Using `EXPLAIN ANALYZE` to see the query plan — the database's step-by-step plan for answering your query, and whether it's using your index |
 
 ## How to run
 
@@ -41,6 +41,6 @@ Indexes also use disk space. A large table with many indexes can use more disk f
 # Requires PostgreSQL
 docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 
-node 01_index_types.js
-node 02_explain_analyze.js
+npx tsx 01_index_types.ts
+npx tsx 02_explain_analyze.ts
 ```

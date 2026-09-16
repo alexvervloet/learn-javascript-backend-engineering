@@ -31,7 +31,7 @@ Most folders need a Postgres instance:
 ```bash
 DB_NAME=transactions_demo docker compose up -d   # or set the folder's db name
 npm install                                       # from the repo root
-node transactions/01_acid.js
+npx tsx transactions/01_acid.ts
 ```
 
 These are runnable demos (most need Postgres; pgvector also needs Ollama) — they

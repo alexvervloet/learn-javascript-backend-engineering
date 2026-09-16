@@ -36,9 +36,9 @@ Reach for Elasticsearch or similar when:
 
 | File | What it teaches |
 |---|---|
-| `01_basics.js` | Creating tsvectors and tsqueries; the `@@` match operator; multi-column search |
-| `02_ranking.js` | `ts_rank` — scoring results by relevance so the best matches come first |
-| `03_indexes.js` | GIN indexes — how to make FTS queries fast even on large tables |
+| `01_basics.ts` | Creating tsvectors and tsqueries; the `@@` match operator; multi-column search |
+| `02_ranking.ts` | `ts_rank` — scoring results by relevance so the best matches come first |
+| `03_indexes.ts` | GIN indexes — how to make FTS queries fast even on large tables |
 
 ## How to run
 
@@ -46,7 +46,7 @@ Reach for Elasticsearch or similar when:
 # Requires PostgreSQL
 docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 
-node 01_basics.js
-node 02_ranking.js
-node 03_indexes.js
+npx tsx 01_basics.ts
+npx tsx 02_ranking.ts
+npx tsx 03_indexes.ts
 ```

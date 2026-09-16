@@ -33,17 +33,17 @@ into "max latency". It doesn't help CPU-heavy work.
 
 | File | What it teaches |
 |---|---|
-| `01_async_basics.js` | CRUD with `pool.query` and `RETURNING` |
-| `02_pool_and_client.js` | `pool.query` vs `pool.connect`, transactions, the release trap |
-| `03_connection_pool.js` | Pool config: `max`, `connectionTimeoutMillis`, `idleTimeoutMillis`, `maxLifetimeSeconds` |
-| `04_pool_exhaustion.js` | What happens when all connections are busy — timeouts and how to fix it |
-| `05_concurrent_queries.js` | Running queries concurrently with `Promise.all` |
+| `01_async_basics.ts` | CRUD with `pool.query` and `RETURNING` |
+| `02_pool_and_client.ts` | `pool.query` vs `pool.connect`, transactions, the release trap |
+| `03_connection_pool.ts` | Pool config: `max`, `connectionTimeoutMillis`, `idleTimeoutMillis`, `maxLifetimeSeconds` |
+| `04_pool_exhaustion.ts` | What happens when all connections are busy — timeouts and how to fix it |
+| `05_concurrent_queries.ts` | Running queries concurrently with `Promise.all` |
 
 ## How to run
 
 ```bash
 docker compose up -d        # Postgres (set DB_NAME=async_demo)
 npm install                 # from the repo root
-node 01_async_basics.js
-node 05_concurrent_queries.js
+npx tsx 01_async_basics.ts
+npx tsx 05_concurrent_queries.ts
 ```

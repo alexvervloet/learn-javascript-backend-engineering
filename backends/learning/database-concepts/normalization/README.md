@@ -34,11 +34,11 @@ Normalization reduces redundancy but can require more JOINs to query data. For r
 
 | File | What it teaches |
 |---|---|
-| `01_unnormalized.js` | A flat table with all the problems: update anomalies, insertion anomalies, deletion anomalies |
-| `02_1nf.js` | First Normal Form: atomic values, no repeating groups |
-| `03_2nf.js` | Second Normal Form: eliminating partial dependencies |
-| `04_3nf.js` | Third Normal Form: eliminating transitive dependencies |
-| `05_bcnf.js` | Boyce-Codd Normal Form: the stricter final step |
+| `01_unnormalized.ts` | A flat table with all the problems: update anomalies, insertion anomalies, deletion anomalies |
+| `02_1nf.ts` | First Normal Form: atomic values, no repeating groups |
+| `03_2nf.ts` | Second Normal Form: eliminating partial dependencies |
+| `04_3nf.ts` | Third Normal Form: eliminating transitive dependencies |
+| `05_bcnf.ts` | Boyce-Codd Normal Form: the stricter final step |
 
 ## How to run
 
@@ -46,7 +46,7 @@ Normalization reduces redundancy but can require more JOINs to query data. For r
 # Requires PostgreSQL
 docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 
-node 01_unnormalized.js
-node 02_1nf.js
+npx tsx 01_unnormalized.ts
+npx tsx 02_1nf.ts
 # ... and so on
 ```

@@ -27,19 +27,19 @@ so similar text lands close in vector space regardless of exact words.
 ollama pull nomic-embed-text          # 1. pull the embedding model
 docker compose up -d                  # 2. Postgres + pgvector
 npm install                           # 3. from the repo root
-node setup.js                         # 4. extension + schema
-node seed.js                          # 5. sample data
-node embed_comments.js                # 6. embed + run a similarity search
+npx tsx setup.ts                         # 4. extension + schema
+npx tsx seed.ts                          # 5. sample data
+npx tsx embed_comments.ts                # 6. embed + run a similarity search
 ```
 
 ## Running a similarity search
 
 ```bash
-node embed_comments.js --search "something about computers learning"
-node embed_comments.js --model mxbai-embed-large   # different model
+npx tsx embed_comments.ts --search "something about computers learning"
+npx tsx embed_comments.ts --model mxbai-embed-large   # different model
 ```
 
 `embedding <=> $1` is pgvector's cosine-distance operator; lower = more similar.
-Switching models changes the vector dimensions — update `vector(N)` in `setup.js`
+Switching models changes the vector dimensions — update `vector(N)` in `setup.ts`
 and re-embed.
 

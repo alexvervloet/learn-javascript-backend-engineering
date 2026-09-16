@@ -48,9 +48,9 @@ for (const row of rows) {
 
 | File | What it teaches |
 |---|---|
-| `01_n_plus_one.js` | Demonstrates the problem clearly — shows the query count growing with row count |
-| `02_solutions.js` | The fixes: a single JOIN, a batched `WHERE id IN (...)` query, and when to use each |
-| `03_tradeoffs.js` | Eager loading isn't always better — loading too much data has its own costs |
+| `01_n_plus_one.ts` | Demonstrates the problem clearly — shows the query count growing with row count |
+| `02_solutions.ts` | The fixes: a single JOIN, a batched `WHERE id IN (...)` query, and when to use each |
+| `03_tradeoffs.ts` | Eager loading isn't always better — loading too much data has its own costs |
 
 ## How to run
 
@@ -58,7 +58,7 @@ for (const row of rows) {
 # Requires PostgreSQL
 docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 
-node 01_n_plus_one.js
-node 02_solutions.js
-node 03_tradeoffs.js
+npx tsx 01_n_plus_one.ts
+npx tsx 02_solutions.ts
+npx tsx 03_tradeoffs.ts
 ```

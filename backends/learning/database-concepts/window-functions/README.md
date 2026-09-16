@@ -36,7 +36,7 @@ FROM sales;
 
 | File | What it teaches |
 |---|---|
-| `01_window_functions.js` | The `OVER` clause, `PARTITION BY`, `ORDER BY` within windows; ROW_NUMBER, RANK, LAG, LEAD, running totals, and moving averages |
+| `01_window_functions.ts` | The `OVER` clause, `PARTITION BY`, `ORDER BY` within windows; ROW_NUMBER, RANK, LAG, LEAD, running totals, and moving averages |
 
 ## How to run
 
@@ -44,5 +44,5 @@ FROM sales;
 # Requires PostgreSQL
 docker run -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 
-node 01_window_functions.js
+npx tsx 01_window_functions.ts
 ```
