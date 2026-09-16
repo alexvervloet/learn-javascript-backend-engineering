@@ -14,12 +14,14 @@
  * Labels slice a metric (method/endpoint/status). Keep cardinality low — never
  * use user IDs/UUIDs as labels.
  *
- * Run:  node 02_metrics.js
+ * Run:  npx tsx 02_metrics.ts
  *   curl localhost:8000/metrics   curl localhost:8000/slow   curl localhost:8000/error
  */
 
-const express = require("express");
-const client = require("prom-client");
+import { fileURLToPath } from "node:url";
+
+import express from "express";
+import client from "prom-client";
 
 const app = express();
 
@@ -78,7 +80,7 @@ app.get("/metrics", async (_req, res) => {
   res.end(await registry.metrics());
 });
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 app.get("/", (_req, res) => res.json({ status: "ok" }));
 app.get("/fast", async (_req, res) => {
@@ -96,8 +98,10 @@ app.get("/random", async (_req, res) => {
   return res.json({ value: Math.floor(Math.random() * 100) + 1 });
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(8000, () => console.log("metrics app on http://localhost:8000 (/metrics)"));
 }
 
-module.exports = { app, registry };
+export { app, registry };

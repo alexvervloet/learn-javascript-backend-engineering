@@ -13,15 +13,17 @@
  * you line up a metric spike with the matching logs. Downstream services forward
  * the same header so one query finds the request's whole journey.
  *
- * Run:  node 03_combined.js
+ * Run:  npx tsx 03_combined.ts
  *   curl localhost:8000/orders ; curl localhost:8000/orders/999 ; curl localhost:8000/metrics
  */
 
-const { AsyncLocalStorage } = require("node:async_hooks");
-const crypto = require("crypto");
-const express = require("express");
-const pino = require("pino");
-const client = require("prom-client");
+import { fileURLToPath } from "node:url";
+
+import { AsyncLocalStorage } from "node:async_hooks";
+import crypto from "node:crypto";
+import express from "express";
+import pino from "pino";
+import client from "prom-client";
 
 const requestContext = new AsyncLocalStorage();
 const log = pino({
@@ -69,7 +71,15 @@ app.use((req, res, next) => {
   });
 });
 
-const ORDERS = {
+interface Order {
+  id: number;
+  item: string;
+  status: string;
+}
+
+// Keyed by order id from the URL, so the lookup can miss. Record says that;
+// an object literal type would have claimed every id exists.
+const ORDERS: Record<string, Order> = {
   1: { id: 1, item: "keyboard", status: "shipped" },
   2: { id: 2, item: "monitor", status: "processing" },
 };
@@ -87,17 +97,20 @@ app.get("/orders", (_req, res) => {
 });
 
 app.get("/orders/:id", (req, res) => {
-  const order = ORDERS[req.params.id];
+  const orderId = typeof req.params.id === "string" ? req.params.id : "";
+  const order = ORDERS[orderId];
   if (!order) {
-    log.warn({ event: "order_not_found", order_id: req.params.id });
-    return res.status(404).json({ detail: `Order ${req.params.id} not found` });
+    log.warn({ event: "order_not_found", order_id: orderId });
+    return res.status(404).json({ detail: `Order ${orderId} not found` });
   }
   log.info({ event: "order_fetched", order_id: order.id, order_status: order.status });
   return res.json(order);
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(8000, () => console.log("observability demo on http://localhost:8000"));
 }
 
-module.exports = { app, registry };
+export { app, registry };

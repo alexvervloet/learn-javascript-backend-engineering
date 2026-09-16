@@ -1,5 +1,5 @@
 /**
- * 03_signing.js — Webhook Signature Verification
+ * 03_signing.ts — Webhook Signature Verification
  *
  * Anyone who knows your webhook URL can POST fake events. Signatures prove the
  * event came from the real sender (Stripe-style):
@@ -13,21 +13,31 @@
  * `crypto.timingSafeEqual` does the constant-time compare (a plain === leaks
  * where the strings first differ).
  *
- * Run:  node 03_signing.js
+ * Run:  npx tsx 03_signing.ts
  */
 
-const crypto = require("crypto");
+import { fileURLToPath } from "node:url";
+
+import crypto from "node:crypto";
 
 const SECRET = "shared-webhook-secret-never-send-this-in-a-request";
 const TOLERANCE_SECONDS = 300; // reject events older than 5 minutes
 
 // ── Sender side ─────────────────────────────────────────────────────────────
 
-function sign(body, timestamp, secret) {
+function sign(body: string, timestamp: number, secret: string): string {
   return crypto.createHmac("sha256", secret).update(`${timestamp}.`).update(body).digest("hex");
 }
 
-function buildSignedHeaders(body, secret) {
+// The three headers a signed webhook carries. Naming the return type is what
+// makes headers["X-Webhook-Signature"] below a string rather than a maybe.
+interface SignedHeaders {
+  "Content-Type": string;
+  "X-Webhook-Timestamp": string;
+  "X-Webhook-Signature": string;
+}
+
+function buildSignedHeaders(body: string, secret: string): SignedHeaders {
   const ts = Math.floor(Date.now() / 1000);
   return {
     "Content-Type": "application/json",
@@ -38,7 +48,12 @@ function buildSignedHeaders(body, secret) {
 
 // ── Receiver side ───────────────────────────────────────────────────────────
 
-function verify(body, timestamp, receivedSig, secret) {
+function verify(
+  body: string,
+  timestamp: number,
+  receivedSig: string,
+  secret: string
+): void {
   const age = Math.abs(Date.now() / 1000 - timestamp);
   if (age > TOLERANCE_SECONDS) throw new Error(`Event is ${age.toFixed(0)}s old — possible replay attack`);
 
@@ -50,7 +65,7 @@ function verify(body, timestamp, receivedSig, secret) {
   }
 }
 
-function demo() {
+function demo(): void {
   const payload = { event: "payment.succeeded", id: "evt_abc123", data: { amount: 4999 } };
   const body = JSON.stringify(payload);
   const headers = buildSignedHeaders(body, SECRET);
@@ -61,13 +76,13 @@ function demo() {
   console.log(`  Timestamp : ${ts}`);
   console.log(`  Signature : ${sig.slice(0, 32)}…`);
 
-  const tryVerify = (label, b, t, s) => {
+  const tryVerify = (label: string, b: string, t: number, s: string): void => {
     console.log(`\n=== Receiver: ${label} ===`);
     try {
       verify(b, t, s, SECRET);
       console.log("  OK — signature verified");
     } catch (err) {
-      console.log(`  REJECTED — ${err.message}`);
+      console.log(`  REJECTED — ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -78,6 +93,8 @@ function demo() {
   tryVerify("wrong secret", body, ts, sign(body, ts, "wrong-secret"));
 }
 
-if (require.main === module) demo();
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) demo();
 
-module.exports = { sign, verify, buildSignedHeaders };
+export { sign, verify, buildSignedHeaders };

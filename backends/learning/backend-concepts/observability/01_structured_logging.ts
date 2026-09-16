@@ -15,17 +15,27 @@
  *     in async handlers.
  *   - pino-pretty = human-readable dev output (vs raw JSON in production).
  *
- * Run:  node 01_structured_logging.js
+ * Run:  npx tsx 01_structured_logging.ts
  */
 
-const { AsyncLocalStorage } = require("node:async_hooks");
-const crypto = require("crypto");
-const pino = require("pino");
+import { fileURLToPath } from "node:url";
+
+import { AsyncLocalStorage } from "node:async_hooks";
+import crypto from "node:crypto";
+import pino from "pino";
+import type { Logger } from "pino";
+
+// What every log line in a request carries, injected by the mixin below.
+interface RequestContext {
+  request_id: string;
+  user_id: number;
+  path: string;
+}
 
 // Per-request context store (the contextvars equivalent).
-const requestContext = new AsyncLocalStorage();
+const requestContext = new AsyncLocalStorage<RequestContext>();
 
-function makeLogger({ pretty }) {
+function makeLogger({ pretty }: { pretty: boolean }): Logger {
   return pino({
     level: "debug",
     // mixin injects the current request context into every log line.
@@ -37,8 +47,13 @@ function makeLogger({ pretty }) {
 }
 
 // Simulate one HTTP request lifecycle inside its own async context.
-async function simulateRequest(log, path, userId, fail = false) {
-  const store = { request_id: crypto.randomUUID().slice(0, 8), user_id: userId, path };
+async function simulateRequest(
+  log: Logger,
+  path: string,
+  userId: number,
+  fail = false
+): Promise<void> {
+  const store: RequestContext = { request_id: crypto.randomUUID().slice(0, 8), user_id: userId, path };
   await requestContext.run(store, async () => {
     log.info({ event: "request_received" });
     if (fail) {
@@ -51,7 +66,7 @@ async function simulateRequest(log, path, userId, fail = false) {
   });
 }
 
-function demoBoundLogger(log) {
+function demoBoundLogger(log: Logger): void {
   console.log("\n--- 1. Basic logging ---");
   log.info({ event: "server_started", port: 8000, env: "production" });
   log.warn({ event: "high_memory", used_mb: 3800, limit_mb: 4000 });
@@ -68,7 +83,7 @@ function demoBoundLogger(log) {
   withUser.child({ order_id: 99124 }).info({ event: "order_created" });
 }
 
-async function demoContext(log) {
+async function demoContext(log: Logger): Promise<void> {
   console.log("\n--- 4. AsyncLocalStorage: async-safe per-request context ---");
   await Promise.all([
     simulateRequest(log, "/api/orders", 1),
@@ -77,7 +92,7 @@ async function demoContext(log) {
   ]);
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log("=== Structured Logging Demo ===");
   console.log("\n[ Development mode: human-readable output ]");
   const devLog = makeLogger({ pretty: true });
@@ -90,6 +105,8 @@ async function main() {
   await demoContext(prodLog);
 }
 
-if (require.main === module) main();
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) main();
 
-module.exports = { makeLogger, requestContext };
+export { makeLogger, requestContext };
