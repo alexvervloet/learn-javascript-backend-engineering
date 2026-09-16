@@ -74,3 +74,20 @@ with the extra fields and have that app's `asyncHandler` hand it to its
 callbacks. Widening at that one boundary is sound, because `AppRequest` only
 adds optional properties, and each app's request shape stays its own. Global
 augmentation is fine for a single deployable, and only for that.
+
+## The conversion found a real bug in the basic-auth demo
+
+**Expected:** a type conversion changes types, not behaviour.
+
+**What happened:** `advanced/server.ts` compared credentials with
+`crypto.timingSafeEqual(Buffer.from(pass || ""), Buffer.from("password123"))`.
+That function throws when the two buffers differ in byte length, so any password
+that was not exactly 11 characters produced a 500 instead of a 401. The bug was
+already there in JavaScript; what surfaced it was being forced to say what
+`pass` was when `encoded` could be undefined, which made the whole expression
+worth reading properly.
+
+**What to do differently:** when the compiler makes you look at a line you had
+been skimming, read the line rather than just satisfying it. The fix is a
+`safeEqual` helper that compares lengths first and returns false, which is both
+correct and still constant-time for equal-length inputs.
