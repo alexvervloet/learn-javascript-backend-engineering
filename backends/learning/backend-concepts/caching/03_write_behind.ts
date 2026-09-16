@@ -12,15 +12,18 @@
  * flush loses pending writes. Use for view counts / "last seen" metrics — never
  * for orders or financial records.
  *
- * Run:  docker compose up -d (Redis)  →  node 03_write_behind.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 03_write_behind.ts
  */
 
-const cache = require("./cache");
-const db = require("./db");
+import { fileURLToPath } from "node:url";
+
+import * as cache from "./cache.js";
+import * as db from "./db.js";
+import type { Product } from "./db.js";
 
 const PENDING_KEY = cache.pendingWritesKey();
 
-async function updateStock(productId, newStock) {
+async function updateStock(productId: number, newStock: number): Promise<void> {
   const key = cache.productKey(productId);
   const raw = await cache.client.get(key);
   if (raw) {
@@ -69,7 +72,7 @@ async function flushPendingWrites() {
   return coalesced.size;
 }
 
-async function main() {
+async function main(): Promise<void> {
   db.resetSchema();
   await cache.client.flushdb();
   const products = db.seed();
@@ -83,7 +86,9 @@ async function main() {
   }
 
   console.log("\n  DB right now (before flush):");
-  console.log(`    DB stock = ${db.getProduct(hub.id).stock}  (still 130 — writes are queued)`);
+  // getProduct is nullable because a cache demo has to model a miss. hub was
+  // seeded above, so ?. is enough to satisfy that without a check here.
+  console.log(`    DB stock = ${db.getProduct(hub.id)?.stock}  (still 130 — writes are queued)`);
   const cached = await cache.client.get(cache.productKey(hub.id));
   if (cached) console.log(`    Cache stock = ${cache.deserialise(cached).stock}  (already updated to 125)`);
 
@@ -91,7 +96,7 @@ async function main() {
   await flushPendingWrites();
 
   console.log("\n=== 3. Verify DB now matches cache ===");
-  console.log(`\n    DB stock    = ${db.getProduct(hub.id).stock}  (expected 125)`);
+  console.log(`\n    DB stock    = ${db.getProduct(hub.id)?.stock}  (expected 125)`);
 
   console.log("\n=== 4. The risk: crash before flush ===");
   console.log(`
@@ -102,11 +107,13 @@ async function main() {
   await cache.client.quit();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { updateStock, flushPendingWrites };
+export { updateStock, flushPendingWrites };

@@ -14,13 +14,16 @@
  * Node is single-threaded, so we simulate concurrency with Promise.all over
  * async requests whose "DB query" awaits a latency sleep, letting them interleave.
  *
- * Run:  docker compose up -d (Redis)  →  node 05_stampede.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 05_stampede.ts
  */
 
-const cache = require("./cache");
-const db = require("./db");
+import { fileURLToPath } from "node:url";
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import * as cache from "./cache.js";
+import * as db from "./db.js";
+import type { Product } from "./db.js";
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 const DB_LATENCY = 50; // ms — simulated query time
 
 let dbHits = 0;
@@ -30,7 +33,7 @@ const recordDbHit = () => {
 
 // ── Naive cache-aside, no protection ────────────────────────────────────────
 
-async function getProductNaive(productId) {
+async function getProductNaive(productId: number): Promise<Product | null> {
   const key = cache.productKey(productId);
   const raw = await cache.client.get(key);
   if (raw !== null) return cache.deserialise(raw);
@@ -38,6 +41,7 @@ async function getProductNaive(productId) {
   await sleep(DB_LATENCY);
   recordDbHit();
   const product = db.getProduct(productId);
+  if (product === null) return null;
   const serialised = cache.serialise(product);
   await cache.client.set(key, serialised, "EX", cache.PRODUCT_TTL);
   return cache.deserialise(serialised);
@@ -45,7 +49,7 @@ async function getProductNaive(productId) {
 
 // ── Solution 1: Redis lock (mutex) ──────────────────────────────────────────
 
-async function getProductWithLock(productId) {
+async function getProductWithLock(productId: number): Promise<Product | null> {
   const key = cache.productKey(productId);
   const lock = cache.lockKey(productId);
 
@@ -62,6 +66,7 @@ async function getProductWithLock(productId) {
         await sleep(DB_LATENCY);
         recordDbHit();
         const product = db.getProduct(productId);
+        if (product === null) return null;
         const serialised = cache.serialise(product);
         await cache.client.set(key, serialised, "EX", cache.PRODUCT_TTL);
         return cache.deserialise(serialised);
@@ -73,7 +78,16 @@ async function getProductWithLock(productId) {
   }
 }
 
-async function runConcurrent(fn, productId, n, label) {
+// Both getProduct variants have this shape, so naming it lets runConcurrent
+// take either one and still check the call.
+type ProductLoader = (productId: number) => Promise<Product | null>;
+
+async function runConcurrent(
+  fn: ProductLoader,
+  productId: number,
+  n: number,
+  label: string
+): Promise<number> {
   dbHits = 0;
   const start = Date.now();
   await Promise.all(Array.from({ length: n }, () => fn(productId)));
@@ -81,7 +95,7 @@ async function runConcurrent(fn, productId, n, label) {
   return dbHits;
 }
 
-async function main() {
+async function main(): Promise<void> {
   db.resetSchema();
   await cache.client.flushdb();
   const [keyboard] = db.seed();
@@ -123,11 +137,13 @@ async function main() {
   await cache.client.quit();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { getProductNaive, getProductWithLock };
+export { getProductNaive, getProductWithLock };

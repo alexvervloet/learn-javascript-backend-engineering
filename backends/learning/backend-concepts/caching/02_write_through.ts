@@ -11,15 +11,30 @@
  * write-through fills it eagerly on every write. Cost: every write also writes
  * Redis, and the two writes aren't atomic (mitigated by short TTLs / retries).
  *
- * Run:  docker compose up -d (Redis)  →  node 02_write_through.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 02_write_through.ts
  */
 
-const cache = require("./cache");
-const db = require("./db");
+import { fileURLToPath } from "node:url";
 
-async function createProduct(name, price, stock) {
-  const info = db.db.prepare("INSERT INTO products (name, price, stock) VALUES (?, ?, ?)").run(name, price, stock);
-  const product = db.getProduct(info.lastInsertRowid);
+import * as cache from "./cache.js";
+import * as db from "./db.js";
+import type { Product } from "./db.js";
+
+// The fields a caller may change. Partial<Product> minus the id, so a typo in a
+// column name is a compile error instead of malformed SQL at runtime.
+type ProductFields = Partial<Omit<Product, "id">>;
+
+async function createProduct(
+  name: string,
+  price: string,
+  stock: number
+): Promise<Product> {
+  const info = db.db
+    .prepare("INSERT INTO products (name, price, stock) VALUES (?, ?, ?)")
+    .run(name, price, stock);
+  const product = db.getProduct(Number(info.lastInsertRowid));
+  // Inserted on this connection a line ago, so a miss is impossible.
+  if (product === null) throw new Error("Inserted product could not be read back");
   console.log(`    DB INSERT   product ${product.id}: ${JSON.stringify(product.name)}`);
 
   const key = cache.productKey(product.id);
@@ -28,14 +43,18 @@ async function createProduct(name, price, stock) {
   return product;
 }
 
-async function updateProduct(productId, fields) {
+async function updateProduct(
+  productId: number,
+  fields: ProductFields
+): Promise<Product> {
   const product = db.getProduct(productId);
   if (product === null) throw new Error(`Product ${productId} not found`);
 
-  const cols = Object.keys(fields);
+  const cols = Object.keys(fields) as (keyof ProductFields)[];
   const sql = `UPDATE products SET ${cols.map((c) => `${c} = ?`).join(", ")} WHERE id = ?`;
-  db.db.prepare(sql).run(...cols.map((c) => fields[c]), productId);
+  db.db.prepare(sql).run(...cols.map((c) => fields[c] ?? null), productId);
   const updated = db.getProduct(productId);
+  if (updated === null) throw new Error(`Product ${productId} vanished mid-update`);
   console.log(`    DB UPDATE   product ${productId}: ${JSON.stringify(fields)}`);
 
   // Pipeline: queue SET + EXPIRE together, sent in one round-trip.
@@ -45,7 +64,7 @@ async function updateProduct(productId, fields) {
   return updated;
 }
 
-async function getProduct(productId) {
+async function getProduct(productId: number): Promise<Product | null> {
   const key = cache.productKey(productId);
   const raw = await cache.client.get(key);
   if (raw !== null) {
@@ -58,7 +77,7 @@ async function getProduct(productId) {
   return product ? cache.deserialise(cache.serialise(product)) : null;
 }
 
-async function main() {
+async function main(): Promise<void> {
   db.resetSchema();
   await cache.client.flushdb();
 
@@ -87,11 +106,13 @@ async function main() {
   await cache.client.quit();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { createProduct, updateProduct, getProduct };
+export { createProduct, updateProduct, getProduct };

@@ -10,7 +10,12 @@
  * Every call is async and returns a promise.
  */
 
-const Redis = require("ioredis");
+// ioredis is a CommonJS package whose class is both the default and a named
+// export. Under nodenext the default import resolves to the module namespace,
+// which is not constructable, so take the named one.
+import { Redis } from "ioredis";
+
+import type { Product } from "./db.js";
 
 const client = new Redis({
   host: process.env.REDIS_HOST || "localhost",
@@ -21,22 +26,29 @@ const client = new Redis({
 const PRODUCT_TTL = 10; // seconds — single product entry
 const LOCK_TTL = 2; // seconds — stampede lock hold time
 
-const productKey = (id) => `product:${id}`;
-const lockKey = (id) => `lock:product:${id}`;
-const pendingWritesKey = () => "pending:writes";
+const productKey = (id: number): string => `product:${id}`;
+const lockKey = (id: number): string => `lock:product:${id}`;
+const pendingWritesKey = (): string => "pending:writes";
 
 // Product rows carry price as a string already, so JSON round-trips cleanly.
-const serialise = (product) =>
-  JSON.stringify({ id: product.id, name: product.name, price: product.price, stock: product.stock });
-const deserialise = (raw) => JSON.parse(raw);
+const serialise = (product: Product): string =>
+  JSON.stringify({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    stock: product.stock,
+  });
+// What comes back out of Redis is a string this process wrote earlier, so
+// claiming it is a Product is reasonable — but it is a claim, not a check.
+const deserialise = (raw: string): Product => JSON.parse(raw) as Product;
 
 // SET key value NX EX ttl — returns true if the key was set (lock acquired).
-async function setNx(key, value, ttl) {
+async function setNx(key: string, value: string, ttl: number): Promise<boolean> {
   const result = await client.set(key, value, "EX", ttl, "NX");
   return result === "OK";
 }
 
-async function printCacheState(label, ...keys) {
+async function printCacheState(label: string, ...keys: string[]): Promise<void> {
   if (!keys.length) return;
   console.log(`\n  [${label}]`);
   for (const key of keys) {
@@ -52,7 +64,7 @@ async function printCacheState(label, ...keys) {
   }
 }
 
-module.exports = {
+export {
   client,
   PRODUCT_TTL,
   LOCK_TTL,

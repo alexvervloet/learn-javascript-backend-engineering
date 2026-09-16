@@ -12,15 +12,18 @@
  * write half-fails. Deleting means the next read just takes a fresh miss —
  * simpler and safer. Trade-off: the first read after a write pays one DB hit.
  *
- * Run:  docker compose up -d (Redis)  →  node 01_cache_aside.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 01_cache_aside.ts
  */
 
-const cache = require("./cache");
-const db = require("./db");
+import { fileURLToPath } from "node:url";
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import * as cache from "./cache.js";
+import * as db from "./db.js";
+import type { Product } from "./db.js";
 
-async function getProduct(productId) {
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function getProduct(productId: number): Promise<Product | null> {
   const key = cache.productKey(productId);
   const raw = await cache.client.get(key);
 
@@ -39,7 +42,7 @@ async function getProduct(productId) {
   return cache.deserialise(serialised);
 }
 
-async function updatePrice(productId, newPrice) {
+async function updatePrice(productId: number, newPrice: string): Promise<void> {
   const product = db.getProduct(productId);
   if (product === null) throw new Error(`Product ${productId} not found`);
 
@@ -52,7 +55,7 @@ async function updatePrice(productId, newPrice) {
   console.log(`    CACHE DEL  ${JSON.stringify(key)}  (invalidated)`);
 }
 
-async function main() {
+async function main(): Promise<void> {
   db.resetSchema();
   await cache.client.flushdb();
   const [keyboard] = db.seed();
@@ -84,11 +87,13 @@ async function main() {
   await cache.client.quit();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { getProduct, updatePrice };
+export { getProduct, updatePrice };

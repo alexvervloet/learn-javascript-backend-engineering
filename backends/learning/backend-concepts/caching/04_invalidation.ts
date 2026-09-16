@@ -11,13 +11,16 @@
  *   3. Versioned keys— embed a version in the key; bump it to invalidate a whole
  *                      category at once. Old keys decay via TTL.
  *
- * Run:  docker compose up -d (Redis)  →  node 04_invalidation.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 04_invalidation.ts
  */
 
-const cache = require("./cache");
-const db = require("./db");
+import { fileURLToPath } from "node:url";
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import * as cache from "./cache.js";
+import * as db from "./db.js";
+import type { Product } from "./db.js";
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ── Strategy 1: TTL-based ───────────────────────────────────────────────────
 
@@ -36,7 +39,10 @@ async function demoTtlBased() {
 
   db.db.prepare("UPDATE products SET price = ? WHERE id = ?").run("999.99", keyboard.id);
   console.log("  DB updated (price → 999.99) — cache still has old price");
-  console.log(`  Cache price: ${cache.deserialise(await cache.client.get(key)).price}  (stale!)`);
+  // client.get returns string | null, so the value is read out first rather
+  // than passed straight into deserialise.
+  const stale = await cache.client.get(key);
+  console.log(`  Cache price: ${stale === null ? "MISS" : cache.deserialise(stale).price}  (stale!)`);
 
   console.log(`  Waiting ${shortTtl}s for TTL expiry...`);
   await sleep((shortTtl + 1) * 1000);
@@ -67,14 +73,15 @@ async function demoEventDriven() {
 
 // ── Strategy 3: Versioned keys ──────────────────────────────────────────────
 
-const versions = new Map(); // in production: a Redis INCR counter
+const versions = new Map<string, number>(); // in production: a Redis INCR counter
 
-const getVersion = (ns) => versions.get(ns) ?? 1;
-const bumpVersion = (ns) => {
-  versions.set(ns, getVersion(ns) + 1);
-  return versions.get(ns);
+const getVersion = (ns: string): number => versions.get(ns) ?? 1;
+const bumpVersion = (ns: string): number => {
+  const next = getVersion(ns) + 1;
+  versions.set(ns, next);
+  return next;
 };
-const versionedKey = (ns, id) => `${ns}:v${getVersion(ns)}:${id}`;
+const versionedKey = (ns: string, id: number): string => `${ns}:v${getVersion(ns)}:${id}`;
 
 async function demoVersionedKeys() {
   console.log("\n\n=== Strategy 3: Versioned keys ===");
@@ -113,7 +120,7 @@ async function demoVersionedKeys() {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   await demoTtlBased();
   await demoEventDriven();
   await demoVersionedKeys();
@@ -128,11 +135,13 @@ async function main() {
   await cache.client.quit();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { demoTtlBased, demoEventDriven, demoVersionedKeys };
+export { demoTtlBased, demoEventDriven, demoVersionedKeys };
