@@ -1,6 +1,7 @@
-const { subsetSum } = require("./subset_sum");
+import { test, expect } from "@jest/globals";
+import { subsetSum } from "./subset_sum.js";
 
-const cases = [
+const cases: [number[], number, boolean][] = [
   [[3, 34, 4, 12, 5, 2], 9, true],
   [[1, 2, 3], 7, false],
   [[1, 2, 3, 8, 9, 10], 7, false],

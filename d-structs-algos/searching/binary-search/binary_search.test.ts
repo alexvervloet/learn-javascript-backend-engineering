@@ -1,10 +1,11 @@
-const { binarySearch } = require("./binary_search");
+import { test, expect } from "@jest/globals";
+import { binarySearch } from "./binary_search.js";
 
-function range(n) {
+function range(n: number): number[] {
   return Array.from({ length: n }, (_, i) => i);
 }
 
-const cases = [
+const cases: [number, number[], boolean][] = [
   [10, range(200), true],
   [-1, range(20000), false],
   [15, [], false],

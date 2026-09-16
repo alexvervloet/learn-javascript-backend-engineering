@@ -1,4 +1,4 @@
-function binarySearch(target, arr) {
+function binarySearch(target: number, arr: number[]): boolean {
   let low = 0;
   let high = arr.length - 1;
   while (low <= high) {
@@ -14,4 +14,4 @@ function binarySearch(target, arr) {
   return false;
 }
 
-module.exports = { binarySearch };
+export { binarySearch };

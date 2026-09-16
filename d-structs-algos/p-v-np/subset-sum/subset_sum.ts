@@ -1,8 +1,8 @@
-function subsetSum(nums, target) {
+function subsetSum(nums: number[], target: number): boolean {
   return findSubsetSum(nums, target, 0);
 }
 
-function findSubsetSum(nums, target, index) {
+function findSubsetSum(nums: number[], target: number, index: number): boolean {
   if (target === 0) {
     return true;
   }
@@ -18,4 +18,4 @@ function findSubsetSum(nums, target, index) {
   );
 }
 
-module.exports = { subsetSum, findSubsetSum };
+export { subsetSum, findSubsetSum };

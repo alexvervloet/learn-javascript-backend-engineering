@@ -1,6 +1,8 @@
-const { tsp } = require("./traveling_salesman");
+import { test, expect } from "@jest/globals";
+import { tsp } from "./traveling_salesman.js";
+import type { DistanceMatrix } from "./traveling_salesman.js";
 
-const cases = [
+const cases: [number[], DistanceMatrix, number, boolean][] = [
   [[0, 1], [[0, 394], [394, 0]], 3458, true],
   [[0, 1, 2], [[0, 911, 430], [911, 0, 41], [430, 41, 0]], 3104, true],
   [[0, 1], [[0, 394], [394, 0]], 300, false],

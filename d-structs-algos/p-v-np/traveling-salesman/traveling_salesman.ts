@@ -1,4 +1,7 @@
-function tsp(cities, paths, dist) {
+// Cities are indexes into `paths`, so paths[a][b] is the distance from a to b.
+type DistanceMatrix = number[][];
+
+function tsp(cities: number[], paths: DistanceMatrix, dist: number): boolean {
   const perms = permutations(cities);
   for (const perm of perms) {
     let totalDist = 0;
@@ -12,7 +15,7 @@ function tsp(cities, paths, dist) {
   return false;
 }
 
-function verifyTsp(paths, dist, actualPath) {
+function verifyTsp(paths: DistanceMatrix, dist: number, actualPath: number[]): boolean {
   let totalDist = 0;
   for (let i = 0; i < actualPath.length - 1; i++) {
     totalDist += paths[actualPath[i]][actualPath[i + 1]];
@@ -20,11 +23,11 @@ function verifyTsp(paths, dist, actualPath) {
   return totalDist <= dist;
 }
 
-function permutations(arr) {
+function permutations(arr: number[]): number[][] {
   return helper([], [...arr], arr.length);
 }
 
-function helper(res, arr, n) {
+function helper(res: number[][], arr: number[], n: number): number[][] {
   if (n === 1) {
     res.push([...arr]);
   } else {
@@ -40,4 +43,5 @@ function helper(res, arr, n) {
   return res;
 }
 
-module.exports = { tsp, verifyTsp, permutations };
+export { tsp, verifyTsp, permutations };
+export type { DistanceMatrix };

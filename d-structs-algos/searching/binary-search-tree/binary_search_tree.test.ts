@@ -1,8 +1,9 @@
-const { BinarySearchTreeNode } = require("./binary_search_tree");
-const { getUsers } = require("./user");
+import { describe, test, expect } from "@jest/globals";
+import { BinarySearchTreeNode } from "./binary_search_tree.js";
+import { getUsers } from "./user.js";
 
-function buildBst(vals) {
-  const bst = new BinarySearchTreeNode();
+function buildBst(vals: number[]): BinarySearchTreeNode<number> {
+  const bst = new BinarySearchTreeNode<number>();
   for (const v of vals) {
     bst.insert(v);
   }
@@ -14,12 +15,14 @@ const BALANCED = [5, 3, 7, 1, 4, 6, 8];
 describe("insert + inorder (sorted property)", () => {
   test.each([3, 5, 10])("stays sorted with %p users", (numUsers) => {
     const users = getUsers(numUsers);
-    const bst = new BinarySearchTreeNode();
+    const bst = new BinarySearchTreeNode<(typeof users)[number]>();
     for (const user of users) {
       bst.insert(user);
     }
     const traversal = bst.inorder();
-    const isSorted = traversal.every((val, i) => i === 0 || traversal[i - 1] < val);
+    const isSorted = traversal.every(
+      (val, i) => i === 0 || Number(traversal[i - 1]) < Number(val)
+    );
     const traversalIds = traversal.map((u) => u.id).sort((a, b) => a - b);
     const userIds = users.map((u) => u.id).sort((a, b) => a - b);
 
@@ -29,7 +32,8 @@ describe("insert + inorder (sorted property)", () => {
 });
 
 describe("traversals", () => {
-  const cases = [
+  type Order = "inorder" | "preorder" | "postorder";
+  const cases: [number[], Order, number[]][] = [
     [BALANCED, "inorder", [1, 3, 4, 5, 6, 7, 8]],
     [BALANCED, "preorder", [5, 3, 1, 4, 7, 6, 8]],
     [BALANCED, "postorder", [1, 4, 3, 6, 8, 7, 5]],
@@ -40,7 +44,7 @@ describe("traversals", () => {
 
   test.each(cases)("%p %s", (vals, order, expected) => {
     const bst = buildBst(vals);
-    let result;
+    let result: number[];
     if (order === "inorder") {
       result = bst.inorder();
     } else if (order === "preorder") {
@@ -53,7 +57,7 @@ describe("traversals", () => {
 });
 
 describe("delete", () => {
-  const cases = [
+  const cases: [number[], number, number[]][] = [
     [BALANCED, 1, [3, 4, 5, 6, 7, 8]],
     [BALANCED, 3, [1, 4, 5, 6, 7, 8]],
     [BALANCED, 5, [1, 3, 4, 6, 7, 8]],
@@ -69,7 +73,7 @@ describe("delete", () => {
 });
 
 describe("exists", () => {
-  const cases = [
+  const cases: [number[], number, boolean][] = [
     [BALANCED, 3, true],
     [BALANCED, 9, false],
     [BALANCED, 1, true],
@@ -83,7 +87,7 @@ describe("exists", () => {
 });
 
 describe("height", () => {
-  const cases = [
+  const cases: [number[], number][] = [
     [BALANCED, 3],
     [[5], 1],
     [[5, 3, 1], 3],
