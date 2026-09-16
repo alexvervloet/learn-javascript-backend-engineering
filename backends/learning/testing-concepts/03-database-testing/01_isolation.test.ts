@@ -16,16 +16,24 @@
  * transaction/savepoint API.
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/03-database-testing/01_isolation
+ *   npm test -- backends/learning/testing-concepts/03-database-testing/01_isolation
  */
 
-const { createDb } = require("./db");
-const repository = require("./repository");
+import { describe, test, expect, beforeEach, afterEach } from "@jest/globals";
+
+import { createDb } from "./db.js";
+import * as repository from "./repository.js";
 
 const db = createDb();
 
-beforeEach(() => db.exec("SAVEPOINT test"));
-afterEach(() => db.exec("ROLLBACK TO test"));
+// Braced bodies so the hooks return void rather than the Database handle
+// that exec() returns for chaining, which Jest would treat as a return value.
+beforeEach(() => {
+  db.exec("SAVEPOINT test");
+});
+afterEach(() => {
+  db.exec("ROLLBACK TO test");
+});
 
 // ── Basic CRUD ────────────────────────────────────────────────────────────
 
@@ -47,7 +55,9 @@ describe("createUser", () => {
 describe("getUser", () => {
   test("get by id returns the user", () => {
     const created = repository.createUser(db, "alice", "alice@example.com");
-    expect(repository.getUserById(db, created.id).username).toBe("alice");
+    // getUserById is deliberately nullable — the next test asserts it returns
+    // null for an unknown id — so reaching for a field needs ?.
+    expect(repository.getUserById(db, created.id)?.username).toBe("alice");
   });
 
   test("get by id returns null for an unknown id", () => {
@@ -56,7 +66,7 @@ describe("getUser", () => {
 
   test("get by email returns the user", () => {
     repository.createUser(db, "bob", "bob@example.com");
-    expect(repository.getUserByEmail(db, "bob@example.com").username).toBe("bob");
+    expect(repository.getUserByEmail(db, "bob@example.com")?.username).toBe("bob");
   });
 
   test("get by email returns null for an unknown address", () => {

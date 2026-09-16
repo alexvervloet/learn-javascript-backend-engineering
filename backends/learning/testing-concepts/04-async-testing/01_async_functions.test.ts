@@ -13,24 +13,41 @@
  *     (a plain jest.fn already returns a thenable when you want it to)
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/04-async-testing/01_async_functions
+ *   npm test -- backends/learning/testing-concepts/04-async-testing/01_async_functions
  */
 
+
+import { jest, test, expect } from "@jest/globals";
 // ---------------------------------------------------------------------------
 // Async functions under test
 // ---------------------------------------------------------------------------
 
-async function fetchUser(userId) {
+interface FetchedUser {
+  id: number;
+  username: string;
+}
+
+async function fetchUser(userId: number): Promise<FetchedUser> {
   await Promise.resolve(); // simulate I/O without actually waiting
   if (userId <= 0) throw new Error(`Invalid userId: ${userId}`);
   return { id: userId, username: `user_${userId}` };
 }
 
-async function fetchUsersConcurrently(userIds) {
+async function fetchUsersConcurrently(userIds: number[]): Promise<FetchedUser[]> {
   return Promise.all(userIds.map((id) => fetchUser(id)));
 }
 
-async function callExternalApi(client, endpoint) {
+interface ApiResponse {
+  data: string;
+}
+
+// The narrowest interface the function needs, so a test can pass an object
+// with just `get` on it.
+interface ApiClient {
+  get(endpoint: string): Promise<ApiResponse>;
+}
+
+async function callExternalApi(client: ApiClient, endpoint: string): Promise<ApiResponse> {
   return client.get(endpoint);
 }
 
@@ -72,7 +89,9 @@ test("Promise.all rejects if any task rejects", async () => {
 // ---------------------------------------------------------------------------
 
 test("async mock resolves a value", async () => {
-  const client = { get: jest.fn().mockResolvedValue({ data: "result" }) };
+  const client = {
+    get: jest.fn<ApiClient["get"]>().mockResolvedValue({ data: "result" }),
+  };
 
   const response = await callExternalApi(client, "/users/1");
 
@@ -81,7 +100,9 @@ test("async mock resolves a value", async () => {
 });
 
 test("async mock rejects", async () => {
-  const client = { get: jest.fn().mockRejectedValue(new Error("timeout")) };
+  const client = {
+    get: jest.fn<ApiClient["get"]>().mockRejectedValue(new Error("timeout")),
+  };
   await expect(callExternalApi(client, "/users/1")).rejects.toThrow("timeout");
 });
 
@@ -89,13 +110,22 @@ test("async mock rejects", async () => {
 // 4. Swapping an async dependency (the patch-an-async-function equivalent)
 // ---------------------------------------------------------------------------
 
-async function startApp(loadConfig) {
+interface AppConfig {
+  debug: boolean;
+  maxConnections: number;
+}
+
+type ConfigLoader = () => Promise<AppConfig>;
+
+async function startApp(loadConfig: ConfigLoader): Promise<string> {
   const config = await loadConfig();
   return config.debug ? "debug mode" : "production mode";
 }
 
 test("inject a fake async config loader", async () => {
-  const loadConfig = jest.fn().mockResolvedValue({ debug: true, maxConnections: 5 });
+  const loadConfig = jest
+    .fn<ConfigLoader>()
+    .mockResolvedValue({ debug: true, maxConnections: 5 });
   expect(await startApp(loadConfig)).toBe("debug mode");
 });
 
@@ -106,23 +136,26 @@ test("inject a fake async config loader", async () => {
 // ---------------------------------------------------------------------------
 
 class AsyncResource {
-  constructor(name) {
+  name: string;
+  closed = false;
+
+  constructor(name: string) {
     this.name = name;
-    this.closed = false;
   }
 
-  async read() {
+  async read(): Promise<string> {
     return `data from ${this.name}`;
   }
 
-  async close() {
+  async close(): Promise<void> {
     this.closed = true;
   }
 }
 
 test("resource is cleaned up on the happy path", async () => {
   const resource = new AsyncResource("db");
-  let data;
+  // Assigned inside the try, so the annotation has to be written out.
+  let data: string | undefined;
   try {
     data = await resource.read();
   } finally {

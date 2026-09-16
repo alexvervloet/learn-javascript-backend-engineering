@@ -10,22 +10,44 @@
  * async patterns mirror each other.
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/04-async-testing/02_async_db
+ *   npm test -- backends/learning/testing-concepts/04-async-testing/02_async_db
  */
 
-const { createAsyncDb } = require("./async_db");
-const repository = require("./async_repository");
+import { describe, test, expect, beforeEach, afterEach } from "@jest/globals";
+
+import { createAsyncDb } from "./async_db.js";
+import * as repository from "./async_repository.js";
+import type { UserRow } from "./async_db.js";
 
 const db = createAsyncDb();
 
 // Async factories bound to the db handle.
-const makeUser = ({ username = "alice", email } = {}) =>
-  repository.createUser(db, username, email ?? `${username}@example.com`);
-const makePost = (user, { title = "Test Post", body = "Body.", published = false } = {}) =>
-  repository.createPost(db, user, title, body, published);
+interface UserOverrides {
+  username?: string;
+  email?: string;
+}
 
-beforeEach(() => db.exec("SAVEPOINT test"));
-afterEach(() => db.exec("ROLLBACK TO test"));
+interface PostOverrides {
+  title?: string;
+  body?: string;
+  published?: boolean;
+}
+
+const makeUser = ({ username = "alice", email }: UserOverrides = {}) =>
+  repository.createUser(db, username, email ?? `${username}@example.com`);
+const makePost = (
+  user: UserRow,
+  { title = "Test Post", body = "Body.", published = false }: PostOverrides = {}
+) => repository.createPost(db, user, title, body, published);
+
+// Braced bodies so the hooks resolve to void rather than whatever exec()
+// resolves to, which Jest would treat as a returned value.
+beforeEach(async () => {
+  await db.exec("SAVEPOINT test");
+});
+afterEach(async () => {
+  await db.exec("ROLLBACK TO test");
+});
 
 // ── CRUD ────────────────────────────────────────────────────────────────────
 
@@ -47,7 +69,9 @@ describe("async createUser", () => {
 describe("async getUser", () => {
   test("get by id returns the user", async () => {
     const created = await repository.createUser(db, "alice", "alice@example.com");
-    expect((await repository.getUserById(db, created.id)).username).toBe("alice");
+    // getUserById is deliberately nullable — the next test asserts it returns
+    // null for a missing id — so reaching for a field needs ?.
+    expect((await repository.getUserById(db, created.id))?.username).toBe("alice");
   });
 
   test("get by id returns null for a missing id", async () => {
@@ -56,7 +80,7 @@ describe("async getUser", () => {
 
   test("get by email", async () => {
     await repository.createUser(db, "bob", "bob@example.com");
-    expect((await repository.getUserByEmail(db, "bob@example.com")).username).toBe("bob");
+    expect((await repository.getUserByEmail(db, "bob@example.com"))?.username).toBe("bob");
   });
 });
 

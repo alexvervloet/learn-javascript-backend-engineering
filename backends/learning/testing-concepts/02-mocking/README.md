@@ -5,24 +5,31 @@ databases, email, payment APIs, HTTP endpoints. **Mocking** replaces them with
 controlled fakes for the duration of a test.
 
 Core tools:
-- **`jest.mock(path)`** — auto-mock a whole module.
-- **`jest.fn()`** — a standalone mock function that records calls.
+- **`jest.unstable_mockModule(path, factory)`** — replace a whole module. This is
+  the ESM form. `jest.mock(path)` is the CommonJS one and does not work here:
+  it relies on Jest hoisting the call above the `require`s, and ESM imports are
+  already evaluated before any statement in the file can run.
+- **`jest.fn<Signature>()`** — a standalone mock function that records calls.
+  Give it the signature it stands in for, or it accepts any arguments and
+  `mockResolvedValue` has nothing to check against.
 - **`jest.spyOn(obj, "method")`** — wrap one real method on an existing object.
 
 ## The golden rule
 
-Mock the module that the code under test **requires**. `checkout.js` does
-`require("./services")`, so `jest.mock("./services")` swaps what it sees.
+Mock the module that the code under test **imports**. `checkout.ts` does
+`import ... from "./services.js"`, so mocking `"./services.js"` swaps what it
+sees. Because `unstable_mockModule` is not hoisted, it has to appear above an
+`await import()` of the module under test — order is explicit rather than magic.
 
 | File | What it teaches |
 |---|---|
-| `services.js` | External deps (EmailService, PaymentService, WeatherClient) |
-| `checkout.js` | Business logic that uses those services |
-| `01_mock_module.test.js` | `jest.mock`, `mockImplementation`, fake timers, `spyOn` + `requireActual` |
-| `02_mock_functions.test.js` | `jest.fn`, `mockResolvedValue`, call matchers, `mock.calls` |
-| `03_side_effects.test.js` | `mockResolvedValueOnce` sequences, `mockRejectedValue`, `mockImplementation` |
-| `04_spies_and_partial.test.js` | `spyOn` interface safety, `mockRestore`, why signatures need TypeScript |
+| `services.ts` | External deps (EmailService, PaymentService, WeatherClient) |
+| `checkout.ts` | Business logic that uses those services |
+| `01_mock_module.test.ts` | `jest.unstable_mockModule` + dynamic import (the ESM replacement for `jest.mock`), `mockImplementation`, fake timers |
+| `02_mock_functions.test.ts` | `jest.fn`, `mockResolvedValue`, call matchers, `mock.calls` |
+| `03_side_effects.test.ts` | `mockResolvedValueOnce` sequences, `mockRejectedValue`, `mockImplementation` |
+| `04_spies_and_partial.test.ts` | `spyOn` interface safety at compile time, `mockRestore`, spying on real instances |
 
 ```bash
-npx jest backends/learning/testing-concepts/02-mocking
+npm test -- backends/learning/testing-concepts/02-mocking
 ```

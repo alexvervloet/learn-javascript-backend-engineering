@@ -21,8 +21,8 @@ engineer reaches for daily.
 
 ```bash
 npm test                                          # whole repo
-npx jest backends/learning/testing-concepts                   # this module
-npx jest backends/learning/testing-concepts/02-mocking        # one section
-npx jest backends/learning/testing-concepts -t "slow"         # filter by test name
+npm test -- backends/learning/testing-concepts                   # this module
+npm test -- backends/learning/testing-concepts/02-mocking        # one section
+npm test -- backends/learning/testing-concepts -t "slow"         # filter by test name
 ```
 

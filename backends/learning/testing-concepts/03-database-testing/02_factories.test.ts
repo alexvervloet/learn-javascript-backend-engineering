@@ -11,19 +11,27 @@
  *   const post  = makePost(alice, { published: true });
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/03-database-testing/02_factories
+ *   npm test -- backends/learning/testing-concepts/03-database-testing/02_factories
  */
 
-const { createDb } = require("./db");
-const repository = require("./repository");
-const { makeUserFactory, makePostFactory } = require("./factories");
+import { describe, test, expect, beforeEach, afterEach } from "@jest/globals";
+
+import { createDb } from "./db.js";
+import * as repository from "./repository.js";
+import { makeUserFactory, makePostFactory } from "./factories.js";
 
 const db = createDb();
 const makeUser = makeUserFactory(db);
 const makePost = makePostFactory(db);
 
-beforeEach(() => db.exec("SAVEPOINT test"));
-afterEach(() => db.exec("ROLLBACK TO test"));
+// Braced bodies so the hooks return void rather than the Database handle
+// that exec() returns for chaining, which Jest would treat as a return value.
+beforeEach(() => {
+  db.exec("SAVEPOINT test");
+});
+afterEach(() => {
+  db.exec("ROLLBACK TO test");
+});
 
 // ── Basic factory usage ─────────────────────────────────────────────────────
 

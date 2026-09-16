@@ -17,12 +17,12 @@ transaction/savepoint API.
 
 | File | What it teaches |
 |---|---|
-| `db.js` | In-memory schema + connection |
-| `repository.js` | Data access layer — the code under test |
-| `factories.js` | Factory helpers for building test rows |
-| `01_isolation.test.js` | Proving test data doesn't bleed between tests |
-| `02_factories.test.js` | Building realistic data with overridable defaults; cascade delete |
+| `db.ts` | In-memory schema + connection |
+| `repository.ts` | Data access layer — the code under test |
+| `factories.ts` | Factory helpers for building test rows |
+| `01_isolation.test.ts` | Proving test data doesn't bleed between tests |
+| `02_factories.test.ts` | Building realistic data with overridable defaults; cascade delete |
 
 ```bash
-npx jest backends/learning/testing-concepts/03-database-testing
+npm test -- backends/learning/testing-concepts/03-database-testing
 ```

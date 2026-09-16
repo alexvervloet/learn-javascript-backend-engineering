@@ -12,15 +12,15 @@ Key tools:
 
 | File | What it teaches |
 |---|---|
-| `async_db.js` | An async db interface (better-sqlite3 wrapped in promises) |
-| `async_repository.js` | Async repository (awaited queries), the async version of section 03 |
-| `01_async_functions.test.js` | Async tests, `.resolves`/`.rejects`, `Promise.all`, async mocks, try/finally cleanup |
-| `02_async_db.test.js` | Async repository queries + SAVEPOINT rollback isolation |
+| `async_db.ts` | An async db interface (better-sqlite3 wrapped in promises) |
+| `async_repository.ts` | Async repository (awaited queries), the async version of section 03 |
+| `01_async_functions.test.ts` | Async tests, `.resolves`/`.rejects`, `Promise.all`, async mocks, try/finally cleanup |
+| `02_async_db.test.ts` | Async repository queries + SAVEPOINT rollback isolation |
 
 > The driver here is synchronous under the hood; the repository presents an
 > async interface so the test patterns match what you'd write against a real
 > async driver (pg, mysql2, libsql).
 
 ```bash
-npx jest backends/learning/testing-concepts/04-async-testing
+npm test -- backends/learning/testing-concepts/04-async-testing
 ```
