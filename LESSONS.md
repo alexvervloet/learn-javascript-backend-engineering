@@ -55,3 +55,22 @@ source again:
     for ts in $(find . -name '*.ts' -not -path '*/node_modules/*'); do
       [ -f "${ts%.ts}.js" ] && echo "LEFTOVER: ${ts%.ts}.js"
     done
+
+## `declare global` does not compose across two apps in one program
+
+**Expected:** augmenting Express's `Request` with the fields our middleware
+attaches is the documented pattern, so doing it in each app would be fine.
+
+**What happened:** it is the documented pattern, and it is genuinely global. Both
+capstone apps declare `req.user`, and their `User` is a different Prisma model
+with different columns. One tsconfig covers both, so the two declarations merged
+and every handler in the url-shortener started failing with complaints about
+`email` and `passwordHash` — fields that belong to the *other* app's user. The
+error pointed at url-shortener files while the cause sat in bookmark-manager.
+
+**What to do differently:** in a repo with more than one app, do not augment
+Express's `Request` globally. Declare an app-local `AppRequest extends Request`
+with the extra fields and have that app's `asyncHandler` hand it to its
+callbacks. Widening at that one boundary is sound, because `AppRequest` only
+adds optional properties, and each app's request shape stays its own. Global
+augmentation is fine for a single deployable, and only for that.
