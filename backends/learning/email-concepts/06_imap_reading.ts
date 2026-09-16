@@ -22,14 +22,20 @@
  *
  * HOW TO RUN:
  *   docker compose up -d
- *   node 06_imap_reading.js
+ *   npx tsx 06_imap_reading.ts
  */
 
-const nodemailer = require("nodemailer");
-const { ImapFlow } = require("imapflow");
+import { fileURLToPath } from "node:url";
+
+import { ImapFlow } from "imapflow";
+import type { ImapFlowOptions } from "imapflow";
+import nodemailer from "nodemailer";
 
 const SMTP = { host: "localhost", port: 1025, secure: false };
-const IMAP = {
+// Annotating the const keeps `logger: false` as the literal false ImapFlow
+// accepts. Without it, TypeScript widens the property to boolean and the
+// option no longer matches `Logger | false`.
+const IMAP: ImapFlowOptions = {
   host: "localhost",
   port: 1143,
   secure: false,
@@ -39,11 +45,19 @@ const IMAP = {
 
 const transport = nodemailer.createTransport(SMTP);
 
-async function sendTestEmail(to, subject, text, html) {
+// html is optional: two of the calls below deliberately send text-only mail.
+// The JavaScript version declared four required parameters and the missing
+// argument simply arrived as undefined.
+async function sendTestEmail(
+  to: string,
+  subject: string,
+  text: string,
+  html?: string
+): Promise<void> {
   await transport.sendMail({ from: "sender@example.com", to, subject, text, html });
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log("CONCEPT 06 — Reading Email with IMAP");
   console.log("=".repeat(60));
@@ -77,23 +91,30 @@ async function main() {
   const lock = await client.getMailboxLock("INBOX");
   try {
     console.log("\n3. Select INBOX:");
-    console.log(`   Messages in INBOX: ${client.mailbox.exists}`);
+    // client.mailbox is `false | MailboxObject` — false when no mailbox is
+    // selected — so the count is read through a check.
+    const mailbox = client.mailbox;
+    console.log(`   Messages in INBOX: ${mailbox ? mailbox.exists : 0}`);
 
     // ── Fetch and parse each message ─────────────────────────────────────
     console.log("\n4. Fetch and print each message:");
     for await (const msg of client.fetch("1:*", { envelope: true, bodyStructure: true })) {
+      // envelope is optional on a fetch result: the server only returns it
+      // because the query asked for it, and the type does not track that.
       const { envelope } = msg;
-      const from = envelope.from?.[0]?.address;
-      const to = envelope.to?.map((a) => a.address).join(", ");
+      const from = envelope?.from?.[0]?.address;
+      const to = envelope?.to?.map((a) => a.address).join(", ");
       console.log(`\n   seq=${msg.seq}`);
       console.log(`   From:    ${from}`);
       console.log(`   To:      ${to}`);
-      console.log(`   Subject: ${envelope.subject}`);
+      console.log(`   Subject: ${envelope?.subject}`);
     }
 
     // ── Search by subject keyword ────────────────────────────────────────
     console.log("\n5. Search SUBJECT containing 'Invoice':");
-    const invoiceIds = await client.search({ subject: "Invoice" });
+    // search() returns false when the mailbox is not selected, so the result is
+    // normalised to an array before use.
+    const invoiceIds = (await client.search({ subject: "Invoice" })) || [];
     console.log(`   Found ${invoiceIds.length} invoice message(s): seq ${invoiceIds.join(", ")}`);
 
     // ── Mark a message as read (set \Seen) ───────────────────────────────
@@ -101,7 +122,7 @@ async function main() {
       const first = invoiceIds[0];
       console.log(`\n6. Mark message ${first} as read:`);
       await client.messageFlagsAdd({ seq: String(first) }, ["\\Seen"]);
-      const unseen = await client.search({ seen: false });
+      const unseen = (await client.search({ seen: false })) || [];
       console.log(`   Unseen seq after marking: ${unseen.join(", ")}`);
       console.log(`   (message ${first} is gone from the unseen list)`);
     }
@@ -121,11 +142,13 @@ async function main() {
   console.log("\nDone. IMAP session closed.");
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { sendTestEmail };
+export { sendTestEmail };

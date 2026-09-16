@@ -25,13 +25,18 @@
  * HOW TO RUN:
  *   npm install            (from the repo root)
  *   docker compose up -d
- *   node 03_templates.js
+ *   npx tsx 03_templates.ts
  *   Open http://localhost:8025 to see the rendered emails.
  */
 
-const path = require("path");
-const nodemailer = require("nodemailer");
-const nunjucks = require("nunjucks");
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import nodemailer from "nodemailer";
+import nunjucks from "nunjucks";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const FROM = { name: "My App", address: "app@example.com" };
 
@@ -39,7 +44,7 @@ const FROM = { name: "My App", address: "app@example.com" };
 // Template engine setup
 // ---------------------------------------------------------------------------
 
-const env = nunjucks.configure(path.join(__dirname, "templates"), {
+const env = nunjucks.configure(path.join(here, "templates"), {
   autoescape: true, // escape HTML entities — the default, stated for clarity
 });
 
@@ -56,7 +61,15 @@ const transport = nodemailer.createTransport({
 // Render + send helpers
 // ---------------------------------------------------------------------------
 
-async function sendEmail({ to, subject, html, text }) {
+// What the render helpers below hand to sendEmail.
+interface OutgoingEmail {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}
+
+async function sendEmail({ to, subject, html, text }: OutgoingEmail): Promise<void> {
   const info = await transport.sendMail({
     from: FROM,
     to,
@@ -71,7 +84,11 @@ async function sendEmail({ to, subject, html, text }) {
 // Email-sending functions (what your app would call)
 // ---------------------------------------------------------------------------
 
-async function sendWelcomeEmail(to, name, verifyToken) {
+async function sendWelcomeEmail(
+  to: string,
+  name: string,
+  verifyToken: string
+): Promise<void> {
   const verifyUrl = `https://myapp.example.com/verify?token=${verifyToken}`;
   const subject = `Welcome to My App, ${name}!`;
   const html = env.render("welcome.njk", { subject, name, verifyUrl });
@@ -79,7 +96,12 @@ async function sendWelcomeEmail(to, name, verifyToken) {
   await sendEmail({ to, subject, html, text });
 }
 
-async function sendPasswordReset(to, name, resetToken, expiresMinutes = 30) {
+async function sendPasswordReset(
+  to: string,
+  name: string,
+  resetToken: string,
+  expiresMinutes = 30
+): Promise<void> {
   const resetUrl = `https://myapp.example.com/reset?token=${resetToken}`;
   const subject = "Reset your password";
   const html = env.render("password_reset.njk", {
@@ -99,7 +121,7 @@ async function sendPasswordReset(to, name, resetToken, expiresMinutes = 30) {
 // Demo
 // ---------------------------------------------------------------------------
 
-async function main() {
+async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log("CONCEPT 03 — Email Templates with Nunjucks");
   console.log("=".repeat(60));
@@ -117,11 +139,13 @@ async function main() {
   console.log("\nAll done. Open http://localhost:8025 to inspect rendered emails.");
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { env, sendWelcomeEmail, sendPasswordReset };
+export { env, sendWelcomeEmail, sendPasswordReset };

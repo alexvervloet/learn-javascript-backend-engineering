@@ -19,7 +19,14 @@
  *   docker compose up -d && MAILPIT=1 npm test -- email-concepts   # + integration
  */
 
-const nodemailer = require("nodemailer");
+import { describe, test, expect, beforeEach } from "@jest/globals";
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
+import type JSONTransport from "nodemailer/lib/json-transport/index.js";
+
+// The JSON transport serialises each message onto info.message instead of
+// sending it, so its SentMessageInfo is the type these tests work with.
+type JsonTransporter = Transporter<JSONTransport.SentMessageInfo>;
 
 const MAILPIT_API = "http://localhost:8025/api/v1";
 
@@ -29,7 +36,15 @@ const MAILPIT_API = "http://localhost:8025/api/v1";
 // integration tests — dependency inversion, no mocking required.
 // ---------------------------------------------------------------------------
 
-async function sendWelcomeEmail(transport, to, name) {
+// Generic over the transport's result type, which is the point the module is
+// making: the same function runs against the JSON transport in unit tests and a
+// real SMTP transport in integration tests, and the signature says so instead of
+// picking one.
+async function sendWelcomeEmail<T>(
+  transport: Transporter<T>,
+  to: string,
+  name: string
+): Promise<T> {
   return transport.sendMail({
     from: { name: "My App", address: "app@example.com" },
     to,
@@ -39,7 +54,11 @@ async function sendWelcomeEmail(transport, to, name) {
   });
 }
 
-async function sendPasswordReset(transport, to, token) {
+async function sendPasswordReset<T>(
+  transport: Transporter<T>,
+  to: string,
+  token: string
+): Promise<T> {
   return transport.sendMail({
     from: "app@example.com",
     to,
@@ -50,8 +69,18 @@ async function sendPasswordReset(transport, to, token) {
 
 // `jsonTransport` serialises each message to JSON on `info.message` instead of
 // sending it — the cleanest fake for unit tests.
-function parseSent(info) {
-  return JSON.parse(info.message);
+// The serialised message is arbitrary JSON as far as the compiler knows, so the
+// shape the assertions rely on is stated here rather than assumed at each one.
+interface SentMessage {
+  from: { name?: string; address: string };
+  to: { name?: string; address: string }[];
+  subject: string;
+  text?: string;
+  html?: string;
+}
+
+function parseSent(info: JSONTransport.SentMessageInfo): SentMessage {
+  return JSON.parse(info.message) as SentMessage;
 }
 
 // ---------------------------------------------------------------------------
@@ -107,21 +136,39 @@ integration("sendWelcomeEmail (integration, Mailpit)", () => {
     await fetch(`${MAILPIT_API}/messages`, { method: "DELETE" });
   });
 
+  // Mailpit's REST responses arrive as unknown from fetch().json(), so the
+  // fields these tests read are declared rather than assumed.
+  interface MailpitList {
+    total: number;
+    messages: { ID: string; Subject: string; To: { Address: string }[] }[];
+  }
+
+  interface MailpitMessage {
+    HTML: string;
+    Text: string;
+  }
+
   test("email arrives in Mailpit", async () => {
     await sendWelcomeEmail(transport, "alex@example.com", "Alex");
-    const data = await fetch(`${MAILPIT_API}/messages`).then((r) => r.json());
+    const data = (await fetch(`${MAILPIT_API}/messages`).then((r) =>
+      r.json()
+    )) as MailpitList;
     expect(data.total).toBe(1);
-    expect(data.messages[0].To[0].Address).toBe("alex@example.com");
-    expect(data.messages[0].Subject).toContain("Welcome");
+    expect(data.messages[0]?.To[0]?.Address).toBe("alex@example.com");
+    expect(data.messages[0]?.Subject).toContain("Welcome");
   });
 
   test("both HTML and text parts are delivered", async () => {
     await sendWelcomeEmail(transport, "test@example.com", "Tester");
-    const list = await fetch(`${MAILPIT_API}/messages`).then((r) => r.json());
-    const full = await fetch(`${MAILPIT_API}/message/${list.messages[0].ID}`).then((r) => r.json());
+    const list = (await fetch(`${MAILPIT_API}/messages`).then((r) =>
+      r.json()
+    )) as MailpitList;
+    const full = (await fetch(`${MAILPIT_API}/message/${list.messages[0]?.ID}`).then((r) =>
+      r.json()
+    )) as MailpitMessage;
     expect(full.HTML).toBeTruthy();
     expect(full.Text).toBeTruthy();
   });
 });
 
-module.exports = { sendWelcomeEmail, sendPasswordReset };
+export { sendWelcomeEmail, sendPasswordReset };

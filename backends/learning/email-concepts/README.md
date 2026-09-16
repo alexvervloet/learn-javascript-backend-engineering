@@ -36,18 +36,18 @@ docker compose up -d # starts Mailpit
 
 | File | What you'll learn |
 |------|-------------------|
-| [01_smtp_basics.js](01_smtp_basics.js) | Transports, connection modes (plain / STARTTLS / TLS), `verify`, debug logging |
-| [02_message_building.js](02_message_building.js) | Message options, HTML + text, attachments, CC/BCC/Reply-To, custom headers |
-| [03_templates.js](03_templates.js) | Nunjucks `{% extends %}`/`{% block %}` inheritance, auto-escaping, rendering + sending |
-| [04_testing.test.js](04_testing.test.js) | `jsonTransport` for unit tests, Mailpit HTTP API for integration (Jest) |
-| [05_transactional_pattern.js](05_transactional_pattern.js) | `EmailSender` abstraction, SMTP (dev) vs Resend HTTP API (prod), factory |
-| [06_imap_reading.js](06_imap_reading.js) | ImapFlow connect, mailbox lock, search, fetch, flags, download |
+| [01_smtp_basics.ts](01_smtp_basics.ts) | Transports, connection modes (plain / STARTTLS / TLS), `verify`, debug logging |
+| [02_message_building.ts](02_message_building.ts) | Message options, HTML + text, attachments, CC/BCC/Reply-To, custom headers |
+| [03_templates.ts](03_templates.ts) | Nunjucks `{% extends %}`/`{% block %}` inheritance, auto-escaping, rendering + sending |
+| [04_testing.test.ts](04_testing.test.ts) | `jsonTransport` for unit tests, Mailpit HTTP API for integration (Jest) |
+| [05_transactional_pattern.ts](05_transactional_pattern.ts) | `EmailSender` abstraction, SMTP (dev) vs Resend HTTP API (prod), factory |
+| [06_imap_reading.ts](06_imap_reading.ts) | ImapFlow connect, mailbox lock, search, fetch, flags, download |
 
 ## Running
 
 ```bash
 docker compose up -d
-node 01_smtp_basics.js      # open http://localhost:8025 after each run
+npx tsx 01_smtp_basics.ts      # open http://localhost:8025 after each run
 npm test -- email-concepts  # unit tests (no server needed)
 # integration tests need Mailpit:
 docker compose up -d && MAILPIT=1 npm test -- email-concepts

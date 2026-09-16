@@ -22,21 +22,43 @@
  *
  * HOW TO RUN:
  *   docker compose up -d
- *   node 05_transactional_pattern.js
+ *   npx tsx 05_transactional_pattern.ts
  *   Open http://localhost:8025 to see the email.
  */
 
-const nodemailer = require("nodemailer");
+import { fileURLToPath } from "node:url";
+
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 
 // ---------------------------------------------------------------------------
 // The EmailSender contract
 // ---------------------------------------------------------------------------
 
-class EmailSender {
-  // eslint-disable-next-line no-unused-vars
-  async send(email) {
-    throw new Error("EmailSender subclasses must implement send()");
-  }
+// The message every backend accepts, and the result every backend returns.
+// Writing both down is what makes the two senders below interchangeable in a
+// checkable way rather than by convention.
+interface Email {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  fromName: string;
+  fromAddress: string;
+  replyTo?: string;
+  tags?: string[];
+}
+
+interface SendResult {
+  id: string;
+  status: string;
+}
+
+// `abstract` is the TypeScript form of what the JavaScript version expressed by
+// throwing from the base method: a subclass that forgets send() now fails to
+// compile instead of failing on the first email it tries to deliver.
+abstract class EmailSender {
+  abstract send(email: Email): Promise<SendResult>;
 }
 
 // ---------------------------------------------------------------------------
@@ -44,12 +66,14 @@ class EmailSender {
 // ---------------------------------------------------------------------------
 
 class SmtpSender extends EmailSender {
-  constructor({ host = "localhost", port = 1025 } = {}) {
+  private transport: Transporter;
+
+  constructor({ host = "localhost", port = 1025 }: { host?: string; port?: number } = {}) {
     super();
     this.transport = nodemailer.createTransport({ host, port, secure: false });
   }
 
-  async send(email) {
+  override async send(email: Email): Promise<SendResult> {
     const info = await this.transport.sendMail({
       from: { name: email.fromName, address: email.fromAddress },
       to: email.to,
@@ -71,20 +95,23 @@ class SmtpSender extends EmailSender {
 class ResendSender extends EmailSender {
   static API_URL = "https://api.resend.com/emails";
 
-  constructor({ apiKey, simulate = true } = {}) {
+  private apiKey: string | undefined;
+  private simulate: boolean;
+
+  constructor({ apiKey, simulate = true }: { apiKey?: string; simulate?: boolean } = {}) {
     super();
     this.apiKey = apiKey;
     this.simulate = simulate;
   }
 
-  async send(email) {
+  override async send(email: Email): Promise<SendResult> {
     const payload = {
       from: `${email.fromName} <${email.fromAddress}>`,
       to: [email.to],
       subject: email.subject,
       html: email.html,
       text: email.text || email.subject,
-      tags: email.tags.map((name) => ({ name, value: "1" })),
+      tags: (email.tags ?? []).map((name) => ({ name, value: "1" })),
       ...(email.replyTo ? { reply_to: email.replyTo } : {}),
     };
 
@@ -105,7 +132,8 @@ class ResendSender extends EmailSender {
     if (!res.ok) {
       throw new Error(`Resend error ${res.status}: ${await res.text()}`);
     }
-    const data = await res.json();
+    // fetch().json() is unknown — nothing guarantees a remote API's shape.
+    const data = (await res.json()) as { id: string };
     return { id: data.id, status: "sent" };
   }
 }
@@ -115,11 +143,13 @@ class ResendSender extends EmailSender {
 // ---------------------------------------------------------------------------
 
 class EmailService {
-  constructor(sender) {
+  private sender: EmailSender;
+
+  constructor(sender: EmailSender) {
     this.sender = sender;
   }
 
-  async sendWelcome(to, name, verifyToken) {
+  async sendWelcome(to: string, name: string, verifyToken: string): Promise<SendResult> {
     const verifyUrl = `https://myapp.example.com/verify?token=${verifyToken}`;
     const result = await this.sender.send({
       to,
@@ -134,7 +164,7 @@ class EmailService {
     return result;
   }
 
-  async sendPasswordReset(to, name, token) {
+  async sendPasswordReset(to: string, name: string, token: string): Promise<SendResult> {
     const resetUrl = `https://myapp.example.com/reset?token=${token}`;
     const result = await this.sender.send({
       to,
@@ -169,7 +199,7 @@ function makeEmailService() {
 // Demo
 // ---------------------------------------------------------------------------
 
-async function main() {
+async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log("CONCEPT 05 — Transactional Email Pattern");
   console.log("=".repeat(60));
@@ -190,11 +220,13 @@ async function main() {
   console.log("\nCheck http://localhost:8025 for messages sent via SmtpSender.");
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { EmailSender, SmtpSender, ResendSender, EmailService, makeEmailService };
+export { EmailSender, SmtpSender, ResendSender, EmailService, makeEmailService };

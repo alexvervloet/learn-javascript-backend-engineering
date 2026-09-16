@@ -20,11 +20,14 @@
  *
  * HOW TO RUN:
  *   docker compose up -d
- *   node 02_message_building.js
+ *   npx tsx 02_message_building.ts
  *   Open http://localhost:8025 — you should see four messages.
  */
 
-const nodemailer = require("nodemailer");
+import { fileURLToPath } from "node:url";
+
+import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport/index.js";
 
 const FROM = { name: "My App", address: "app@example.com" };
 
@@ -34,12 +37,15 @@ const transport = nodemailer.createTransport({
   secure: false,
 });
 
-async function send(message) {
+// nodemailer's own Options type describes every field a message may carry, so
+// a misspelled header here is a compile error rather than a silently dropped
+// field.
+async function send(message: SMTPTransport.Options): Promise<void> {
   const info = await transport.sendMail(message);
   console.log(`   Sent: ${JSON.stringify(message.subject)} (${info.messageId})`);
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log("CONCEPT 02 — Message Building");
   console.log("=".repeat(60));
@@ -112,11 +118,13 @@ async function main() {
   console.log("\nAll done. Open http://localhost:8025 to inspect all four messages.");
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { transport, send };
+export { transport, send };

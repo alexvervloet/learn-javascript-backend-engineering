@@ -26,6 +26,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.20.3",
+    "@types/nodemailer": "^8.0.2",
     "@types/nunjucks": "^3.2.6",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",

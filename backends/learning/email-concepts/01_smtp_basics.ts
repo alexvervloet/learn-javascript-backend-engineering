@@ -29,11 +29,13 @@
  *
  * HOW TO RUN:
  *   docker compose up -d
- *   node 01_smtp_basics.js
+ *   npx tsx 01_smtp_basics.ts
  *   Open http://localhost:8025 to see the email in Mailpit's web UI.
  */
 
-const nodemailer = require("nodemailer");
+import { fileURLToPath } from "node:url";
+
+import nodemailer from "nodemailer";
 
 const SMTP_HOST = "localhost";
 const SMTP_PORT = 1025; // Mailpit
@@ -116,11 +118,13 @@ async function main() {
   console.log("\nAll done. Open http://localhost:8025 to see the two messages.");
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { transport };
+export { transport };
