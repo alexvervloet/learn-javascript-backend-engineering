@@ -14,10 +14,10 @@
  * more at 01:01 — 2×LIMIT in ~2s, yet both windows look clean. Sliding window
  * (02) fixes this.
  *
- * Run:  docker compose up -d (Redis)  →  node 01_fixed_window.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 01_fixed_window.ts
  */
 
-const redisRl = require("./redis_rl");
+import * as redisRl from "./redis_rl.js";
 
 const LIMIT = 5;
 const WINDOW = 10; // seconds
@@ -29,16 +29,29 @@ if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
 return count
 `;
 
-const windowStart = (now, window) => Math.floor(now / window) * window;
+const windowStart = (now: number, window: number): number => Math.floor(now / window) * window;
 
-async function isAllowed(identifier, now) {
+// What each limiter hands back. Naming it keeps the four demos comparable.
+interface Decision {
+  allowed: boolean;
+  count: number;
+}
+
+async function isAllowed(identifier: string, now: number): Promise<Decision> {
   const ws = windowStart(Math.floor(now), WINDOW);
   const key = `rl:fixed:${identifier}:${ws}`;
-  const count = await redisRl.client.eval(LUA, 1, key, WINDOW);
+  // eval() returns `unknown`: Redis can reply with any type, and only the Lua
+  // script above says it is a number here.
+  const count = Number(await redisRl.client.eval(LUA, 1, key, WINDOW));
   return { allowed: count <= LIMIT, count };
 }
 
-async function makeRequests(identifier, n, now, label) {
+async function makeRequests(
+  identifier: string,
+  n: number,
+  now: number,
+  label: string
+): Promise<void> {
   console.log(`\n  ${label}`);
   for (let i = 1; i <= n; i += 1) {
     const { allowed, count } = await isAllowed(identifier, now + i * 0.01);
@@ -46,7 +59,7 @@ async function makeRequests(identifier, n, now, label) {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   await redisRl.flush();
   console.log("=== Fixed Window Rate Limiting ===");
   console.log(`    limit=${LIMIT} requests per ${WINDOW}s window`);

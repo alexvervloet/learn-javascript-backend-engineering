@@ -11,13 +11,15 @@
  * response carries the standard headers: X-RateLimit-Limit / -Remaining / -Reset
  * (and Retry-After on a 429).
  *
- * Run:  docker compose up -d (Redis)  →  node 04_middleware.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 04_middleware.ts
  *   for i in $(seq 1 5); do curl -si localhost:8000/search | head -1; done
  */
 
-const crypto = require("crypto");
-const express = require("express");
-const redisRl = require("./redis_rl");
+import { fileURLToPath } from "node:url";
+
+import crypto from "node:crypto";
+import express from "express";
+import * as redisRl from "./redis_rl.js";
 
 const app = express();
 
@@ -33,24 +35,47 @@ redis.call('EXPIRE', key, window)
 return count
 `;
 
-async function checkRateLimit(identifier, limit, window) {
+// What the limiter hands back. Naming it keeps the four demos comparable.
+interface Decision {
+  allowed: boolean;
+  count: number;
+}
+
+interface LimitConfig {
+  limit: number;
+  window: number;
+}
+
+async function checkRateLimit(
+  identifier: string,
+  limit: number,
+  window: number
+): Promise<Decision> {
   const now = Date.now() / 1000;
   const member = `${now}:${crypto.randomUUID()}`;
-  const count = await redisRl.client.eval(LUA, 1, `rl:sliding:${identifier}`, now, window, member);
+  // eval() returns `unknown`: Redis can reply with any type, and only the Lua
+  // script above says it is a number here.
+  const count = Number(
+    await redisRl.client.eval(LUA, 1, `rl:sliding:${identifier}`, now, window, member)
+  );
   return { allowed: count <= limit, count };
 }
 
-// Per-route limits, with a global default.
-const ROUTE_LIMITS = {
+// Per-route limits, with a global default. Record<string, LimitConfig> is what
+// lets it be looked up by an arbitrary req.path, with a miss falling through to
+// the default.
+const ROUTE_LIMITS: Record<string, LimitConfig> = {
   "/search": { limit: 3, window: 30 }, // strict — expensive endpoint
   "/upload": { limit: 5, window: 60 },
 };
-const DEFAULT_LIMIT = { limit: 10, window: 10 };
+const DEFAULT_LIMIT: LimitConfig = { limit: 10, window: 10 };
 
 app.use(async (req, res, next) => {
   const config = ROUTE_LIMITS[req.path] || DEFAULT_LIMIT;
-  const forwarded = req.headers["x-forwarded-for"];
-  const clientIp = forwarded ? forwarded.split(",")[0].trim() : req.socket.remoteAddress;
+  // A header can arrive more than once, so Node types it as string | string[].
+  const forwardedHeader = req.headers["x-forwarded-for"];
+  const forwarded = Array.isArray(forwardedHeader) ? forwardedHeader[0] : forwardedHeader;
+  const clientIp = forwarded ? forwarded.split(",")[0]?.trim() : req.socket.remoteAddress;
   const identifier = `${clientIp}:${req.path}`;
 
   const { allowed, count } = await checkRateLimit(identifier, config.limit, config.window);
@@ -72,8 +97,10 @@ app.get("/", (_req, res) => res.json({ message: "Hello! Default limit: 10 req / 
 app.get("/search", (req, res) => res.json({ results: [], query: req.query.q || "", note: "Strict: 3 req / 30s." }));
 app.get("/upload", (_req, res) => res.json({ note: "Moderate: 5 req / 60s." }));
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(8000, () => console.log("rate-limited API on http://localhost:8000"));
 }
 
-module.exports = { app, checkRateLimit };
+export { app, checkRateLimit };

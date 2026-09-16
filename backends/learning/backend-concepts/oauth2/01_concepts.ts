@@ -17,13 +17,19 @@
  * The `state` parameter is CSRF protection: a random value stored in the session
  * and echoed back by GitHub; a mismatch means a forged callback.
  *
- * Run:  node 01_concepts.js   (no credentials needed — prints URLs + explains)
+ * Run:  npx tsx 01_concepts.ts   (no credentials needed — prints URLs + explains)
  */
 
-const crypto = require("crypto");
+import { fileURLToPath } from "node:url";
+
+import crypto from "node:crypto";
 
 // Step 1: build the authorization URL the browser is redirected to.
-function buildGithubAuthUrl(clientId, redirectUri, state) {
+function buildGithubAuthUrl(
+  clientId: string,
+  redirectUri: string,
+  state: string
+): string {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -34,7 +40,7 @@ function buildGithubAuthUrl(clientId, redirectUri, state) {
 }
 
 // Step 2: parse the callback URL and validate the state.
-function parseCallback(callbackUrl, expectedState) {
+function parseCallback(callbackUrl: string, expectedState: string): string | null {
   const url = new URL(callbackUrl);
   const receivedState = url.searchParams.get("state");
   const code = url.searchParams.get("code");
@@ -45,7 +51,12 @@ function parseCallback(callbackUrl, expectedState) {
 }
 
 // Step 3: what the server-to-server token exchange looks like (not executed).
-const formatTokenExchange = (clientId, clientSecret, code, redirectUri) => `POST https://github.com/login/oauth/access_token
+const formatTokenExchange = (
+  clientId: string,
+  clientSecret: string,
+  code: string,
+  redirectUri: string
+): string => `POST https://github.com/login/oauth/access_token
 Content-Type: application/json
 Accept: application/json
 
@@ -76,16 +87,20 @@ function main() {
   try {
     parseCallback(`${REDIRECT_URI}?code=evil&state=tampered`, state);
   } catch (err) {
-    console.log(`   ✗ ${err.message}\n`);
+    console.log(`   ✗ ${err instanceof Error ? err.message : String(err)}\n`);
   }
 
   console.log("3. Exchange code for an access token (server-to-server):");
-  console.log(formatTokenExchange(CLIENT_ID, CLIENT_SECRET, code, REDIRECT_URI));
+  // parseCallback returns null when the URL carries no code, so the demo
+  // substitutes a placeholder rather than printing "null".
+  console.log(formatTokenExchange(CLIENT_ID, CLIENT_SECRET, code ?? "<no code>", REDIRECT_URI));
 
   console.log("\n4. Fetch the profile: GET https://api.github.com/user (Authorization: token …)");
-  console.log("\n5. Create your own session (see 03_session.js): upsert user, mint a JWT.");
+  console.log("\n5. Create your own session (see 03_session.ts): upsert user, mint a JWT.");
 }
 
-if (require.main === module) main();
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) main();
 
-module.exports = { buildGithubAuthUrl, parseCallback };
+export { buildGithubAuthUrl, parseCallback };

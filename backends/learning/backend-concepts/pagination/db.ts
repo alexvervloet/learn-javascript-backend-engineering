@@ -1,10 +1,14 @@
 // SQLite connection + schema for the pagination demo. File-backed (articles.db)
-// so the seed persists between `seed.js` and `main.js` runs.
+// so the seed persists between `seed.ts` and `main.ts` runs.
 
-const path = require("path");
-const Database = require("better-sqlite3");
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import Database from "better-sqlite3";
 
-const db = new Database(path.join(__dirname, "articles.db"));
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+const db = new Database(path.join(here, "articles.db"));
 db.pragma("foreign_keys = ON");
 
 db.exec(`
@@ -25,4 +29,16 @@ db.exec(`
   );
 `);
 
-module.exports = { db };
+// One article row. better-sqlite3 cannot know what a SQL string returns, so the
+// shape is declared here next to the CREATE TABLE that produces it.
+interface Article {
+  id: number;
+  title: string;
+  body: string;
+  author: string;
+  published_at: string;
+  view_count: number;
+}
+
+export { db };
+export type { Article };

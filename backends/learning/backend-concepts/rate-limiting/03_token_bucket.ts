@@ -11,10 +11,10 @@
  * Two keys per identifier (tokens + last refill time). The read-modify-write
  * runs in one Lua script so concurrent requests can't double-spend a token.
  *
- * Run:  docker compose up -d (Redis)  →  node 03_token_bucket.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 03_token_bucket.ts
  */
 
-const redisRl = require("./redis_rl");
+import * as redisRl from "./redis_rl.js";
 
 const CAPACITY = 10;
 const RATE = 2.0; // tokens/second
@@ -48,8 +48,16 @@ else
 end
 `;
 
-async function isAllowed(identifier, now) {
-  const [allowed, tokens] = await redisRl.client.eval(
+// The token bucket reports its level rather than a request count.
+interface BucketDecision {
+  allowed: boolean;
+  tokens: number;
+}
+
+async function isAllowed(identifier: string, now: number): Promise<BucketDecision> {
+  // eval() returns `unknown`: Redis can reply with any type, and only the Lua
+  // script above says it is a two-element array here.
+  const reply = (await redisRl.client.eval(
     LUA,
     2,
     `rl:bucket:${identifier}:tokens`,
@@ -59,11 +67,16 @@ async function isAllowed(identifier, now) {
     COST,
     now,
     TTL
-  );
+  )) as [unknown, unknown];
+  const [allowed, tokens] = reply;
   return { allowed: Number(allowed) === 1, tokens: Number(tokens) };
 }
 
-async function makeRequests(identifier, timestamps, label) {
+async function makeRequests(
+  identifier: string,
+  timestamps: number[],
+  label: string
+): Promise<void> {
   console.log(`\n  ${label}`);
   let i = 0;
   for (const ts of timestamps) {
@@ -73,7 +86,7 @@ async function makeRequests(identifier, timestamps, label) {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   await redisRl.flush();
   console.log("=== Token Bucket Rate Limiting ===");
   console.log(`    capacity=${CAPACITY} tokens  rate=${RATE} tokens/s  cost=${COST}/request`);

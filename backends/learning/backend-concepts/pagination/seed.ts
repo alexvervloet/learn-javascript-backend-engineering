@@ -1,6 +1,6 @@
-// Seed the articles.db with sample data. Run once before main.js:  node seed.js
+// Seed the articles.db with sample data. Run once before main.js:  npx tsx seed.ts
 
-const { db } = require("./db");
+import { db } from "./db.js";
 
 const TITLES = [
   "Understanding Async Programming in JavaScript",
@@ -68,10 +68,13 @@ const COMMENT_BODIES = [
   "The cursor pagination section was eye-opening.",
 ];
 
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const sample = (arr, k) => [...arr].sort(() => Math.random() - 0.5).slice(0, k);
+// Generic over the element type, so pick(TITLES) is a string and the caller
+// does not lose that by going through a helper.
+const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)] as T;
+const sample = <T,>(arr: T[], k: number): T[] =>
+  [...arr].sort(() => Math.random() - 0.5).slice(0, k);
 
-function main() {
+function main(): void {
   db.exec("DELETE FROM comments; DELETE FROM articles;");
   const now = Date.now();
 

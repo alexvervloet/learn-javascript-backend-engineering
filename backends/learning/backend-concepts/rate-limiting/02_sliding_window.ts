@@ -13,11 +13,11 @@
  * burst IS caught because those requests stay inside the rolling window.
  * Trade-off: one entry per request (vs one integer for fixed window).
  *
- * Run:  docker compose up -d (Redis)  →  node 02_sliding_window.js
+ * Run:  docker compose up -d (Redis)  →  npx tsx 02_sliding_window.ts
  */
 
-const crypto = require("crypto");
-const redisRl = require("./redis_rl");
+import crypto from "node:crypto";
+import * as redisRl from "./redis_rl.js";
 
 const LIMIT = 5;
 const WINDOW = 10; // seconds
@@ -34,14 +34,26 @@ redis.call('EXPIRE', key, window)
 return count
 `;
 
-async function isAllowed(identifier, now) {
+// What the limiter hands back. Naming it keeps the four demos comparable.
+interface Decision {
+  allowed: boolean;
+  count: number;
+}
+
+async function isAllowed(identifier: string, now: number): Promise<Decision> {
   const key = `rl:sliding:${identifier}`;
   const member = `${now}:${crypto.randomUUID()}`;
-  const count = await redisRl.client.eval(LUA, 1, key, now, WINDOW, member);
+  // eval() returns `unknown`: Redis can reply with any type, and only the Lua
+  // script above says it is a number here.
+  const count = Number(await redisRl.client.eval(LUA, 1, key, now, WINDOW, member));
   return { allowed: count <= LIMIT, count };
 }
 
-async function makeRequests(identifier, timestamps, label) {
+async function makeRequests(
+  identifier: string,
+  timestamps: number[],
+  label: string
+): Promise<void> {
   console.log(`\n  ${label}`);
   let i = 0;
   for (const ts of timestamps) {
@@ -51,7 +63,7 @@ async function makeRequests(identifier, timestamps, label) {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   await redisRl.flush();
   console.log("=== Sliding Window Rate Limiting ===");
   console.log(`    limit=${LIMIT} requests per ${WINDOW}s rolling window`);

@@ -1,7 +1,7 @@
 /**
  * GitHub OAuth2 Login with Express
  * =================================
- * The full Authorization Code flow from 01_concepts.js, implemented with
+ * The full Authorization Code flow from 01_concepts.ts, implemented with
  * express-session for state + the built-in `fetch` for the token exchange.
  * (Doing it by hand here keeps the moving parts visible. For production,
  * `openid-client` or `passport-github2` handle the boilerplate.)
@@ -15,12 +15,30 @@
  * Setup: create a GitHub OAuth app (callback http://localhost:8000/auth/github/callback),
  * put the credentials in .env (see .env.example), and load them however you like.
  *
- * Run:  node 02_github.js  →  open http://localhost:8000
+ * Run:  npx tsx 02_github.ts  →  open http://localhost:8000
  */
 
-const crypto = require("crypto");
-const express = require("express");
-const session = require("express-session");
+import { fileURLToPath } from "node:url";
+
+import crypto from "node:crypto";
+import express from "express";
+import session from "express-session";
+
+// What GitHub's token endpoint returns. A fetch().json() is `unknown`, which is
+// correct: nothing guarantees a remote service sends what you expect. These
+// interfaces are the claim being made, kept next to the call that makes it.
+interface GitHubTokenResponse {
+  access_token?: string;
+  error?: string;
+}
+
+interface GitHubUser {
+  id: number;
+  login: string;
+  name: string | null;
+  email: string | null;
+  avatar_url: string;
+}
 
 const app = express();
 app.use(session({ secret: process.env.SECRET_KEY || "dev-secret", resave: false, saveUninitialized: true }));
@@ -56,7 +74,9 @@ app.get("/login/github", (req, res) => {
 });
 
 app.get("/auth/github/callback", async (req, res) => {
-  const { code, state } = req.query;
+  // Express 5 types a query value as string | string[] | ParsedQs.
+  const code = typeof req.query.code === "string" ? req.query.code : undefined;
+  const state = typeof req.query.state === "string" ? req.query.state : undefined;
   if (!state || state !== req.session.oauthState) {
     return res.status(400).send("<h3>OAuth error: state mismatch</h3><a href='/'>Try again</a>");
   }
@@ -68,7 +88,8 @@ app.get("/auth/github/callback", async (req, res) => {
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, code, redirect_uri: REDIRECT_URI }),
   });
-  const { access_token: accessToken, error } = await tokenResp.json();
+  const { access_token: accessToken, error } =
+    (await tokenResp.json()) as GitHubTokenResponse;
   if (error || !accessToken) {
     return res.status(400).send(`<h3>OAuth error: ${error || "no token"}</h3><a href='/'>Try again</a>`);
   }
@@ -77,7 +98,7 @@ app.get("/auth/github/callback", async (req, res) => {
   const userResp = await fetch("https://api.github.com/user", {
     headers: { Authorization: `token ${accessToken}`, "User-Agent": "oauth-demo" },
   });
-  const gh = await userResp.json();
+  const gh = (await userResp.json()) as GitHubUser;
 
   // Store a minimal profile in the session — NOT the access token.
   req.session.user = {
@@ -93,8 +114,10 @@ app.get("/auth/github/callback", async (req, res) => {
 app.get("/me", (req, res) => (req.session.user ? res.json(req.session.user) : res.redirect("/")));
 app.get("/logout", (req, res) => req.session.destroy(() => res.redirect("/")));
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(8000, () => console.log("GitHub OAuth demo on http://localhost:8000"));
 }
 
-module.exports = { app };
+export { app };
