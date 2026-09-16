@@ -71,4 +71,4 @@ Build them all, then: docker images | grep node-
   docker history node-multi                         # see the (fewer) layers
   # Edit app/server.js, rebuild → the npm ci layer shows CACHED.
 */
-module.exports = {};
+export {};

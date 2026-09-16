@@ -19,15 +19,17 @@
  *
  * HOW TO RUN THIS FILE:
  *   Terminal 1:  docker compose up
- *   Terminal 2:  node 05_periodic_tasks.js
+ *   Terminal 2:  npx tsx 05_periodic_tasks.ts
  *
  * This file registers the schedulers, starts a worker, and runs for ~25s so you
  * can watch the 10-second health check fire a couple of times, then cleans up
  * the schedulers and exits.
  */
 
-const { Queue, Worker } = require("bullmq");
-const { connection } = require("./connection");
+import { fileURLToPath } from "node:url";
+
+import { Queue, Worker } from "bullmq";
+import { connection } from "./connection.js";
 
 const QUEUE_NAME = "periodic_tasks";
 
@@ -48,7 +50,7 @@ const handlers = {
     console.log("[beat] Generating daily report...");
     return "report generated";
   },
-  syncExternalData(source) {
+  syncExternalData(source: string) {
     console.log(`[beat] Syncing data from ${source}...`);
     return `synced: ${source}`;
   },
@@ -118,7 +120,13 @@ async function main() {
 
   const worker = new Worker(
     QUEUE_NAME,
-    async (job) => handlers[job.name](job.data.source),
+    // job.name is a string off the queue, so the handler table is indexed as a
+    // Record and the miss is handled rather than assumed away.
+    async (job) => {
+      const handler = (handlers as Record<string, (source: string) => string>)[job.name];
+      if (!handler) throw new Error(`No handler for job ${job.name}`);
+      return handler((job.data as { source: string }).source);
+    },
     { connection }
   );
 
@@ -131,11 +139,13 @@ async function main() {
   await queue.close();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { handlers, schedules, QUEUE_NAME };
+export { handlers, schedules, QUEUE_NAME };

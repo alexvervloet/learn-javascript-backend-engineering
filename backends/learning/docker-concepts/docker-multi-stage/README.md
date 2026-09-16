@@ -18,8 +18,8 @@ Dockerfile fundamentals and the multi-stage build pattern that keeps production 
 | `Dockerfile.alpine` | Alpine-based variant (even smaller, but glibc trade-offs) |
 | `Dockerfile.slim` | Debian slim variant |
 | `Dockerfile.buildargs` | Using `ARG` and `ENV` to parameterize builds |
-| `notes.js` | Annotated notes on all concepts |
-| `notes_optimization.js` | Layer caching tips and size optimization strategies |
+| `notes.ts` | Annotated notes on all concepts |
+| `notes_optimization.ts` | Layer caching tips and size optimization strategies |
 | `app/` | minimal Express app used as the build target |
 
 ## Try it
@@ -44,7 +44,7 @@ RUN npm ci
 FROM node:22-slim
 COPY --from=builder /node_modules /node_modules
 COPY app/ app/
-CMD ["node", "server.js"]
+CMD ["node", "server.ts"]
 ```
 
 The final image never contains build headers, dev dependencies, or intermediate files.

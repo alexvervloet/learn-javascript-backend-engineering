@@ -10,18 +10,27 @@
  *   docker compose -f docker-compose.yml -f docker-compose.test.yml run --rm app
  */
 
-const request = require("supertest");
+import { describe, test, expect, beforeAll, afterAll } from "@jest/globals";
+import request from "supertest";
+
+import type { Express } from "express";
+import type { Pool } from "pg";
+import type { Redis } from "ioredis";
 
 // Only run when explicitly inside the Docker integration environment.
 const suite = process.env.DOCKER_IT ? describe : describe.skip;
 
 suite("Docker Compose API (integration)", () => {
-  let app;
-  let pool;
-  let redis;
+  // Filled in by beforeAll, so the annotations have to be written out.
+  let app: Express;
+  let pool: Pool;
+  let redis: Redis;
 
-  beforeAll(() => {
-    ({ app, pool, redis } = require("../server"));
+  beforeAll(async () => {
+    // A dynamic import rather than require(): this module is ESM, and the
+    // import is deliberately late so the server does not connect to Postgres
+    // and Redis when the suite is skipped outside Docker.
+    ({ app, pool, redis } = await import("../server.js"));
   });
   afterAll(async () => {
     await pool.end();

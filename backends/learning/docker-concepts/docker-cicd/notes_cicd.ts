@@ -49,7 +49,7 @@ the install layer — only the final layers change.
 --- LANGUAGE-AGNOSTIC BY DESIGN ---
 
 The pipeline cares only about the Dockerfile: node base images, `npm ci`, and
-`node server.js`. The build-push-action, caching, GHCR, tags-vs-digests, and
+`npx tsx server.ts`. The build-push-action, caching, GHCR, tags-vs-digests, and
 build-arg patterns are the same whatever the app is written in.
 
 --- EXERCISES ---
@@ -59,4 +59,4 @@ build-arg patterns are the same whatever the app is written in.
      docker run -p 8000:8000 ...   curl localhost:8000/version  → SHA matches.
   3. Push twice; the second run shows CACHED on the npm ci layer.
 */
-module.exports = {};
+export {};

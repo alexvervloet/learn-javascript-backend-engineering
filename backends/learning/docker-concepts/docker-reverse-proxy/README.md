@@ -17,7 +17,7 @@ Put nginx in front of a Express app using Docker Compose.
 | `docker-compose.yml` | App + nginx services |
 | `nginx/` | nginx config files |
 | `app/` | Express backend (only reachable via nginx) |
-| `notes_reverseproxy.js` | Annotated notes on all concepts |
+| `notes_reverseproxy.ts` | Annotated notes on all concepts |
 
 ## Try it
 

@@ -16,4 +16,4 @@ const connection = {
   port: Number(process.env.REDIS_PORT || 6379),
 };
 
-module.exports = { connection };
+export { connection };

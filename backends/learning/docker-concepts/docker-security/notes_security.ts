@@ -68,4 +68,4 @@ Fewer packages = fewer CVEs: full > slim > alpine > distroless
       127.0.0.1 bind for non-public services, internal services have no ports:
   [ ] scan in CI; auto-update base digests
 */
-module.exports = {};
+export {};

@@ -19,7 +19,7 @@ Harden Docker images and containers against common vulnerabilities.
 | `docker-compose.yml` | Shows read-only and secret patterns |
 | `secrets/` | Example Docker secrets (never commit real secrets) |
 | `app/` | Express app used as the demo target |
-| `notes_security.js` | Annotated notes on all concepts |
+| `notes_security.ts` | Annotated notes on all concepts |
 
 ## Key patterns
 

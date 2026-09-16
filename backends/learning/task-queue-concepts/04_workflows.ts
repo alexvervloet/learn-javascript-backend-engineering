@@ -23,11 +23,14 @@
  *
  * HOW TO RUN THIS FILE:
  *   Terminal 1:  docker compose up
- *   Terminal 2:  node 04_workflows.js
+ *   Terminal 2:  npx tsx 04_workflows.ts
  */
 
-const { Queue, Worker, QueueEvents, FlowProducer } = require("bullmq");
-const { connection } = require("./connection");
+import { fileURLToPath } from "node:url";
+
+import { Queue, Worker, QueueEvents, FlowProducer } from "bullmq";
+import type { Job } from "bullmq";
+import { connection } from "./connection.js";
 
 const QUEUE_NAME = "workflows";
 
@@ -35,17 +38,41 @@ const QUEUE_NAME = "workflows";
 // Job logic — parents read upstream results from getChildrenValues().
 // ---------------------------------------------------------------------------
 
-async function childValues(job) {
-  return Object.values(await job.getChildrenValues());
+// What each step in the flow hands to its parent. BullMQ stores a child's
+// return value as JSON and getChildrenValues() gives it back as unknown, so
+// each parent states the shape it expects from its own child.
+interface Downloaded {
+  url: string;
+  content: string;
+  sizeKb: number;
 }
 
-async function download(url) {
+interface Parsed {
+  url: string;
+  words: number;
+  sizeKb: number;
+}
+
+interface Resized {
+  imageId: string;
+  size: string;
+  path: string;
+}
+
+// Generic over the child's result type: the caller knows which step ran below
+// it, and that is the only place the shape can be stated honestly.
+async function childValues<T>(job: Job): Promise<T[]> {
+  return Object.values(await job.getChildrenValues()) as T[];
+}
+
+async function download(url: string): Promise<Downloaded> {
   await new Promise((resolve) => setTimeout(resolve, 500));
   return { url, content: `<html>${url}</html>`, sizeKb: url.length * 10 };
 }
 
-async function parse(job) {
-  const [downloaded] = await childValues(job); // download()'s result
+async function parse(job: Job): Promise<Parsed> {
+  const [downloaded] = await childValues<Downloaded>(job); // download()'s result
+  if (!downloaded) throw new Error("parse expects one download child");
   return {
     url: downloaded.url,
     words: downloaded.content.split(/\s+/).length,
@@ -53,24 +80,26 @@ async function parse(job) {
   };
 }
 
-async function store(job) {
-  const [parsed] = await childValues(job); // parse()'s result
+async function store(job: Job): Promise<string> {
+  const [parsed] = await childValues<Parsed>(job); // parse()'s result
+  if (!parsed) throw new Error("store expects one parse child");
   return `Stored: ${parsed.url} (${parsed.words} words)`;
 }
 
-async function resizeImage(imageId, size) {
+async function resizeImage(imageId: string, size: string): Promise<Resized> {
   await new Promise((resolve) => setTimeout(resolve, 300));
   return { imageId, size, path: `/img/${imageId}_${size}.jpg` };
 }
 
-async function aggregate(job) {
-  const results = await childValues(job);
+async function aggregate(job: Job): Promise<{ total: number; summary: string[] }> {
+  const results = await childValues<Resized>(job);
   return { total: results.length, summary: results.map((r) => r.path) };
 }
 
-async function multiplyByChild(job) {
-  const [childResult] = await childValues(job);
-  return childResult * job.data.factor;
+async function multiplyByChild(job: Job): Promise<number> {
+  const [childResult] = await childValues<number>(job);
+  if (childResult === undefined) throw new Error("multiplyByChild expects one child");
+  return childResult * (job.data as { factor: number }).factor;
 }
 
 // ---------------------------------------------------------------------------
@@ -170,11 +199,13 @@ async function main() {
   await queue.close();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { download, parse, store, resizeImage, aggregate, QUEUE_NAME };
+export { download, parse, store, resizeImage, aggregate, QUEUE_NAME };

@@ -37,11 +37,11 @@ docker compose up    # start Redis (+ redis-commander UI on :8081)
 
 | File | Concept | Run |
 |------|---------|-----|
-| [01_basic_tasks.js](01_basic_tasks.js) | Queues, workers, `queue.add`, delayed jobs, `waitUntilFinished` | `node 01_basic_tasks.js` |
-| [02_task_states.js](02_task_states.js) | Job lifecycle, `updateProgress`, `QueueEvents`, `failedReason` | `node 02_task_states.js` |
-| [03_retries.js](03_retries.js) | `attempts`, exponential/custom backoff, `UnrecoverableError` | `node 03_retries.js` |
-| [04_workflows.js](04_workflows.js) | Flows: chains, groups, fan-in (`getChildrenValues`) | `node 04_workflows.js` |
-| [05_periodic_tasks.js](05_periodic_tasks.js) | Job Schedulers (`upsertJobScheduler`), interval + cron | `node 05_periodic_tasks.js` |
+| [01_basic_tasks.ts](01_basic_tasks.ts) | Queues, workers, `queue.add`, delayed jobs, `waitUntilFinished` | `npx tsx 01_basic_tasks.ts` |
+| [02_task_states.ts](02_task_states.ts) | Job lifecycle, `updateProgress`, `QueueEvents`, `failedReason` | `npx tsx 02_task_states.ts` |
+| [03_retries.ts](03_retries.ts) | `attempts`, exponential/custom backoff, `UnrecoverableError` | `npx tsx 03_retries.ts` |
+| [04_workflows.ts](04_workflows.ts) | Flows: chains, groups, fan-in (`getChildrenValues`) | `npx tsx 04_workflows.ts` |
+| [05_periodic_tasks.ts](05_periodic_tasks.ts) | Job Schedulers (`upsertJobScheduler`), interval + cron | `npx tsx 05_periodic_tasks.ts` |
 
 Each file is self-contained: it starts its own in-process worker, runs the demo,
 and cleans up — so a single `node <file>` shows the full round-trip (just keep

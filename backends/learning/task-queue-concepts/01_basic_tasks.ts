@@ -22,14 +22,16 @@
  *
  * HOW TO RUN THIS FILE:
  *   Terminal 1 (broker):  docker compose up
- *   Terminal 2 (demo):    node 01_basic_tasks.js
+ *   Terminal 2 (demo):    npx tsx 01_basic_tasks.ts
  *
  * This file starts its own worker in-process so a single `node` command shows
  * the full producer → worker → result round-trip.
  */
 
-const { Queue, Worker, QueueEvents } = require("bullmq");
-const { connection } = require("./connection");
+import { fileURLToPath } from "node:url";
+
+import { Queue, Worker, QueueEvents } from "bullmq";
+import { connection } from "./connection.js";
 
 const QUEUE_NAME = "basic_tasks";
 
@@ -37,17 +39,19 @@ const QUEUE_NAME = "basic_tasks";
 // Job logic — plain async functions. The worker dispatches on `job.name`.
 // ---------------------------------------------------------------------------
 
-function add(x, y) {
+function add(x: number, y: number): number {
   return x + y;
 }
 
-async function slowAdd(x, y) {
+async function slowAdd(x: number, y: number): Promise<number> {
   // Simulates slow work (e.g. hitting an external API).
   await new Promise((resolve) => setTimeout(resolve, 3000));
   return x + y;
 }
 
-async function sendWelcomeEmail(userEmail) {
+async function sendWelcomeEmail(
+  userEmail: string
+): Promise<{ status: string; to: string }> {
   // In a real app this would call SES / SendGrid / SMTP.
   await new Promise((resolve) => setTimeout(resolve, 1000));
   console.log(`[worker] Sent welcome email to ${userEmail}`);
@@ -123,11 +127,13 @@ async function main() {
   await queue.close();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { add, slowAdd, sendWelcomeEmail, QUEUE_NAME, startWorker };
+export { add, slowAdd, sendWelcomeEmail, QUEUE_NAME, startWorker };

@@ -66,4 +66,4 @@ Always exclude:
   docker build -f Dockerfile.buildargs --build-arg PORT=9000 -t node-buildargs .
   docker run -p 9000:9000 node-buildargs
 */
-module.exports = {};
+export {};

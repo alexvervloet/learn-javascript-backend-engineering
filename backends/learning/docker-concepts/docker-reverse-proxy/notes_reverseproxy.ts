@@ -43,4 +43,4 @@ forwarded values in Express via req.headers["x-real-ip"], etc. (set
   docker compose up -d --scale app=3   # nginx round-robins across 3 app containers
   docker compose exec nginx nginx -T   # dump resolved config
 */
-module.exports = {};
+export {};

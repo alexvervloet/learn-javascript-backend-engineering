@@ -18,9 +18,9 @@ Multi-service application setup using Docker Compose.
 | `docker-compose.override.yml` | Dev overrides (bind mounts, hot reload) |
 | `docker-compose.test.yml` | Isolated test environment |
 | `init.sql` | SQL run on first Postgres startup |
-| `notes_compose.js` | Annotated notes on all concepts |
-| `notes_networking.js` | Container networking deep dive |
-| `notes_devworkflow.js` | Local development workflow patterns |
+| `notes_compose.ts` | Annotated notes on all concepts |
+| `notes_networking.ts` | Container networking deep dive |
+| `notes_devworkflow.ts` | Local development workflow patterns |
 | `app/` | Express app wired to the Postgres service |
 
 ## Try it

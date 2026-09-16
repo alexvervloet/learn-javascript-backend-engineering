@@ -5,10 +5,15 @@
  * Connection strings come from env vars set in docker-compose.yml.
  */
 
-const crypto = require("crypto");
-const express = require("express");
-const { Pool } = require("pg");
-const Redis = require("ioredis");
+import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+import express from "express";
+// ioredis is a CommonJS package whose class is both the default and a named
+// export. Under nodenext the default import resolves to the module namespace,
+// which is not constructable, so take the named one.
+import { Redis } from "ioredis";
+import { Pool } from "pg";
 
 const app = express();
 app.use(express.json());
@@ -71,8 +76,10 @@ app.delete("/items/cache", async (_req, res) => {
   res.json({ message: "cache cleared" });
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(8000, () => console.log("listening on http://0.0.0.0:8000"));
 }
 
-module.exports = { app, pool, redis };
+export { app, pool, redis };

@@ -54,4 +54,4 @@ In multi-service systems, forward the id downstream:
   docker compose logs --since 5m
   docker compose logs -f 2>&1 | grep -i error
 */
-module.exports = {};
+export {};

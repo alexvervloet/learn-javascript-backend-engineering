@@ -73,4 +73,4 @@ vars under `environment:`. Never commit .env; commit .env.example.
   4. Persistence: POST an item, `down`, `up -d`, item survives (named volume);
      `down -v`, `up -d`, back to seed only (init.sql re-ran).
 */
-module.exports = {};
+export {};

@@ -54,4 +54,4 @@ crash; with service_healthy Compose waits until pg_isready passes.
   docker inspect --format='{{.State.Health.Status}}' <ctr>   # one service
   docker compose exec app node -e "require('dns').promises.lookup('db').then(console.log)"
 */
-module.exports = {};
+export {};

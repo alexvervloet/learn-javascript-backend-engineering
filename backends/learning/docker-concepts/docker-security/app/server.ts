@@ -1,13 +1,13 @@
-const fs = require("fs");
-const os = require("os");
-const express = require("express");
+import fs from "node:fs";
+import os from "node:os";
+import express from "express";
 
 const app = express();
 
 // Read a Docker secret mounted at /run/secrets/<name>. This is how a compose
 // `secrets:` entry surfaces — as a file, never an env var (so it's not visible
 // in `docker inspect`).
-function readSecret(name) {
+function readSecret(name: string): string | null {
   try {
     return fs.readFileSync(`/run/secrets/${name}`, "utf8").trim();
   } catch {

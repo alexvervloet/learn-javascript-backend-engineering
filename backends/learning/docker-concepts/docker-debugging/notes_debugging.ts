@@ -55,4 +55,4 @@ Look for: container exited immediately (stack trace / ENOTFOUND / ECONNREFUSED),
   Memory exceeded → OOM-kill (SIGKILL); CPU exceeded → throttled (not killed).
   docker inspect --format='{{.State.OOMKilled}}' <ctr>     docker stats
 */
-module.exports = {};
+export {};

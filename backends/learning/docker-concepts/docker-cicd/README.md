@@ -16,7 +16,7 @@ Automate building, tagging, and publishing Docker images in a GitHub Actions wor
 |---|---|
 | `Dockerfile` | The image to build and publish |
 | `app/` | Express app packaged by the Dockerfile |
-| `notes_cicd.js` | Annotated notes on all concepts |
+| `notes_cicd.ts` | Annotated notes on all concepts |
 
 ## Example workflow (reference)
 
@@ -52,4 +52,4 @@ jobs:
           cache-to: type=gha,mode=max
 ```
 
-See `notes_cicd.js` for a breakdown of each step.
+See `notes_cicd.ts` for a breakdown of each step.

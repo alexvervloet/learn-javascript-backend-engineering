@@ -22,11 +22,13 @@
  *
  * HOW TO RUN THIS FILE:
  *   Terminal 1:  docker compose up
- *   Terminal 2:  node 03_retries.js
+ *   Terminal 2:  npx tsx 03_retries.ts
  */
 
-const { Queue, Worker, QueueEvents, UnrecoverableError } = require("bullmq");
-const { connection } = require("./connection");
+import { fileURLToPath } from "node:url";
+
+import { Queue, Worker, QueueEvents, UnrecoverableError } from "bullmq";
+import { connection } from "./connection.js";
 
 const QUEUE_NAME = "retries";
 
@@ -35,9 +37,9 @@ const QUEUE_NAME = "retries";
 // tracks its own attempt count across retries.
 // ---------------------------------------------------------------------------
 
-const callCounts = new Map();
+const callCounts = new Map<string, number>();
 
-function flakyApiCall(key, failTimes) {
+function flakyApiCall(key: string, failTimes: number): string {
   const attempt = (callCounts.get(key) ?? 0) + 1;
   callCounts.set(key, attempt);
   if (attempt <= failTimes) {
@@ -109,7 +111,7 @@ async function main() {
   try {
     await j3.waitUntilFinished(queueEvents);
   } catch (err) {
-    console.log(`   Final failure: ${err.message}`);
+    console.log(`   Final failure: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // --- UnrecoverableError short-circuits remaining attempts ---
@@ -118,7 +120,7 @@ async function main() {
   try {
     await j4.waitUntilFinished(queueEvents);
   } catch (err) {
-    console.log(`   Failed after ${j4.attemptsMade ?? 1} attempt(s): ${err.message}`);
+    console.log(`   Failed after ${j4.attemptsMade ?? 1} attempt(s): ${err instanceof Error ? err.message : String(err)}`);
   }
 
   await worker.close();
@@ -126,11 +128,13 @@ async function main() {
   await queue.close();
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { flakyApiCall, QUEUE_NAME };
+export { flakyApiCall, QUEUE_NAME };
