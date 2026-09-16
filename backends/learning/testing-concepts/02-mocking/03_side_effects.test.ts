@@ -11,14 +11,34 @@
  * implementation (or mockResolvedValue) is used as the fallback.
  *
  * Run:
- *   npx jest backends/learning/testing-concepts/02-mocking/03_side_effects
+ *   npm test -- backends/learning/testing-concepts/02-mocking/03_side_effects
  */
+
+import { jest, test, expect } from "@jest/globals";
 
 // ---------------------------------------------------------------------------
 // Code under test
 // ---------------------------------------------------------------------------
 
-async function sendWithRetry(emailService, to, retries = 3) {
+// The dependencies are described by the narrowest interface each function
+// needs, which is what lets the tests pass a one-method object.
+interface Sender {
+  send(to: string, subject: string, body: string): Promise<boolean>;
+}
+
+interface PriceResponse {
+  price: number;
+}
+
+interface ApiClient {
+  get(path: string): Promise<PriceResponse>;
+}
+
+async function sendWithRetry(
+  emailService: Sender,
+  to: string,
+  retries = 3
+): Promise<boolean> {
   for (let attempt = 0; attempt < retries; attempt += 1) {
     try {
       // eslint-disable-next-line no-await-in-loop
@@ -30,7 +50,7 @@ async function sendWithRetry(emailService, to, retries = 3) {
   return false;
 }
 
-async function fetchPrice(apiClient, itemId) {
+async function fetchPrice(apiClient: ApiClient, itemId: string): Promise<number> {
   const response = await apiClient.get(`/prices/${itemId}`);
   return response.price;
 }
@@ -41,7 +61,7 @@ async function fetchPrice(apiClient, itemId) {
 
 test("retry succeeds on the third attempt", async () => {
   const send = jest
-    .fn()
+    .fn<Sender["send"]>()
     .mockRejectedValueOnce(new Error("timeout"))
     .mockRejectedValueOnce(new Error("timeout"))
     .mockResolvedValueOnce(true);
@@ -53,13 +73,13 @@ test("retry succeeds on the third attempt", async () => {
 });
 
 test("retry re-throws after all attempts are exhausted", async () => {
-  const send = jest.fn().mockRejectedValue(new Error("timeout")); // always fails
+  const send = jest.fn<Sender["send"]>().mockRejectedValue(new Error("timeout")); // always fails
   await expect(sendWithRetry({ send }, "alice@example.com", 3)).rejects.toThrow("timeout");
 });
 
 test("different resolved value per call", async () => {
   const get = jest
-    .fn()
+    .fn<ApiClient["get"]>()
     .mockResolvedValueOnce({ price: 9.99 })
     .mockResolvedValueOnce({ price: 14.99 })
     .mockResolvedValueOnce({ price: 4.99 });
@@ -75,7 +95,9 @@ test("different resolved value per call", async () => {
 // ---------------------------------------------------------------------------
 
 test("mockRejectedValue throws when awaited", async () => {
-  const send = jest.fn().mockRejectedValue(new Error("SMTP server unreachable"));
+  const send = jest
+    .fn<Sender["send"]>()
+    .mockRejectedValue(new Error("SMTP server unreachable"));
   await expect(send("x@example.com", "s", "b")).rejects.toThrow("SMTP server unreachable");
 });
 
@@ -84,10 +106,14 @@ test("mockRejectedValue throws when awaited", async () => {
 // ---------------------------------------------------------------------------
 
 test("implementation chooses output by argument", async () => {
-  const priceDb = { "/prices/widget": { price: 9.99 }, "/prices/gadget": { price: 24.99 } };
-  const get = jest.fn().mockImplementation(async (path) => {
-    if (!(path in priceDb)) throw new Error(`Unknown path: ${path}`);
-    return priceDb[path];
+  const priceDb: Record<string, PriceResponse> = {
+    "/prices/widget": { price: 9.99 },
+    "/prices/gadget": { price: 24.99 },
+  };
+  const get = jest.fn<ApiClient["get"]>().mockImplementation(async (path) => {
+    const found = priceDb[path];
+    if (found === undefined) throw new Error(`Unknown path: ${path}`);
+    return found;
   });
   const api = { get };
 
@@ -101,7 +127,10 @@ test("implementation chooses output by argument", async () => {
 // ---------------------------------------------------------------------------
 
 test("once-implementations run first, then the default takes over", () => {
-  const fn = jest.fn().mockReturnValue("default_response").mockReturnValueOnce("first_call_override");
+  const fn = jest
+    .fn<() => string>()
+    .mockReturnValue("default_response")
+    .mockReturnValueOnce("first_call_override");
 
   expect(fn()).toBe("first_call_override"); // queued once-value
   expect(fn()).toBe("default_response"); // falls back to the base value
