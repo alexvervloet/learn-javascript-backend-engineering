@@ -1,7 +1,9 @@
-const { Queue } = require("./custom_queue");
-const { matchmake } = require("./matchmake");
+import { test, expect } from "@jest/globals";
+import { Queue } from "./custom_queue.js";
+import { matchmake } from "./matchmake.js";
+import type { UserEvent } from "./matchmake.js";
 
-const cases = [
+const cases: [UserEvent, string[], string][] = [
   [["Ted", "join"], ["Ted"], "No match found"],
   [["Barney", "join"], ["Barney", "Ted"], "No match found"],
   [["Marshall", "join"], ["Marshall", "Barney", "Ted"], "No match found"],
@@ -19,7 +21,7 @@ const cases = [
 ];
 
 test("matchmake processes a sequence of joins and leaves", () => {
-  const queue = new Queue();
+  const queue = new Queue<string>();
   for (const [user, expectedItems, expectedReturn] of cases) {
     const result = matchmake(queue, user);
     expect(result).toBe(expectedReturn);
