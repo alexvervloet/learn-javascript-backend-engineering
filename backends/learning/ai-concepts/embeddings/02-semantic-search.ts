@@ -1,7 +1,7 @@
 /**
  * Semantic search: rank a corpus by meaning, not keyword overlap.
  *
- * Run: `node 02-semantic-search.js [openai|voyage]`
+ * Run: `npx tsx 02-semantic-search.ts [openai|voyage]`
  *
  * We embed a small "knowledge base" once, embed a query, and rank documents by
  * cosine similarity to the query. Note the winning document for "my card was
@@ -13,10 +13,19 @@
  * of a JavaScript array, but the ranking idea is identical.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const OpenAI = require("openai");
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const CORPUS = [
   "To return an item, visit your orders page and click 'Start a return'.",
@@ -26,7 +35,7 @@ const CORPUS = [
 ];
 const QUERY = "my card was declined at checkout";
 
-function cosine(a, b) {
+function cosine(a: number[], b: number[]): number {
   let dot = 0;
   let na = 0;
   let nb = 0;
@@ -38,7 +47,14 @@ function cosine(a, b) {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-async function embed(provider, texts) {
+// Voyage has no official JS SDK, so its REST response is parsed by hand.
+// fetch().json() is unknown — nothing guarantees a remote API's shape — so this
+// interface is the claim being made about it, next to the call.
+interface VoyageEmbeddingResponse {
+  data: { embedding: number[] }[];
+}
+
+async function embed(provider: string, texts: string[]): Promise<number[][]> {
   if (provider === "openai") {
     const client = new OpenAI();
     const resp = await client.embeddings.create({
@@ -61,30 +77,42 @@ async function embed(provider, texts) {
     }),
   });
   if (!resp.ok) throw new Error(`Voyage API ${resp.status}: ${(await resp.text()).slice(0, 110)}`);
-  return (await resp.json()).data.map((d) => d.embedding);
+  const json = (await resp.json()) as VoyageEmbeddingResponse;
+  return json.data.map((d) => d.embedding);
 }
 
-async function search(provider) {
+// One scored document. A plain [number, string] array would have inferred as
+// (number | string)[], which is why score.toFixed() below stopped compiling —
+// the tuple had lost which element was which.
+interface Hit {
+  score: number;
+  doc: string;
+}
+
+async function search(provider: string): Promise<void> {
   // Embed corpus + query together, then score each doc against the query.
   const vectors = await embed(provider, [...CORPUS, QUERY]);
-  const queryVec = vectors[vectors.length - 1];
+  const queryVec = vectors.at(-1);
+  if (!queryVec) throw new Error("No query vector returned");
   const docVecs = vectors.slice(0, -1);
 
-  const ranked = docVecs
-    .map((dv, i) => [cosine(queryVec, dv), CORPUS[i]])
-    .sort((a, b) => b[0] - a[0]);
+  const ranked: Hit[] = docVecs
+    .map((dv, i) => ({ score: cosine(queryVec, dv), doc: CORPUS[i] ?? "" }))
+    .sort((a, b) => b.score - a.score);
 
   console.log(`  query: "${QUERY}"`);
-  for (const [score, doc] of ranked) {
+  for (const { score, doc } of ranked) {
     console.log(`    ${score.toFixed(3)}  ${doc}`);
   }
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   // Voyage is free; pass "both"/"openai" to include OpenAI.
   const which = process.argv[2] || "voyage";
   for (const provider of ["openai", "voyage"]) {
@@ -100,8 +128,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { cosine, embed, search };
+export { cosine, embed, search };

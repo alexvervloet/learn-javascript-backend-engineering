@@ -1,7 +1,7 @@
 /**
  * Counting tokens and estimating cost.
  *
- * Run: `node 04-token-counting-cost.js [anthropic|openai]`
+ * Run: `npx tsx 04-token-counting-cost.ts [anthropic|openai]`
  *
  * You pay per token — both for what you send (input) and what you get back
  * (output), at different rates. Two skills matter:
@@ -19,29 +19,50 @@
  * pricing page. They live here only to show the arithmetic.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const PROMPT = "Summarize the CAP theorem for a backend engineer in 3 bullet points.";
 
 // USD per 1,000,000 tokens (input, output). Illustrative — verify current pricing.
-const PRICES = {
+// Dollars per million tokens. Record keyed by provider name, so a lookup with
+// an unknown provider has to be handled rather than silently undefined.
+interface Price {
+  input: number;
+  output: number;
+}
+
+const PRICES: Record<string, Price> = {
   anthropic: { input: 5.0, output: 25.0 }, // Claude Opus tier
   openai: { input: 2.5, output: 10.0 }, // GPT-4o tier
 };
 
-function dollars(provider, inTok, outTok) {
+function dollars(provider: string, inTok: number, outTok: number): number {
   const p = PRICES[provider];
+  if (!p) throw new Error(`No pricing for provider: ${provider}`);
   return (inTok * p.input + outTok * p.output) / 1_000_000;
 }
 
-async function runAnthropic() {
+async function runAnthropic(): Promise<void> {
   const client = new Anthropic();
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
-  const messages = [{ role: "user", content: PROMPT }];
+  // Anthropic and OpenAI each define their own message-parameter type, and the
+  // `role` in both is a fixed union rather than a string. Annotating the array
+  // with the SDK type is what catches a typo like "assistent" — a plain array
+  // literal infers `role: string` and no longer matches.
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: PROMPT }];
 
   // Pre-flight: ask the API exactly how many input tokens this will be.
   const pre = await client.messages.countTokens({ model, messages });
@@ -53,7 +74,7 @@ async function runAnthropic() {
   console.log(`estimated cost: $${dollars("anthropic", u.input_tokens, u.output_tokens).toFixed(6)}`);
 }
 
-async function runOpenAI() {
+async function runOpenAI(): Promise<void> {
   const client = new OpenAI();
   const model = process.env.OPENAI_MODEL || "gpt-4o";
 
@@ -63,16 +84,25 @@ async function runOpenAI() {
     model,
     messages: [{ role: "user", content: PROMPT }],
   });
+  // usage is optional on the response — a streamed call may omit it.
   const u = resp.usage;
+  if (!u) {
+    console.log("no usage reported");
+    return;
+  }
   console.log(`actual: in=${u.prompt_tokens} out=${u.completion_tokens}`);
-  console.log(`estimated cost: $${dollars("openai", u.prompt_tokens, u.completion_tokens).toFixed(6)}`);
+  console.log(
+    `estimated cost: $${dollars("openai", u.prompt_tokens, u.completion_tokens).toFixed(6)}`
+  );
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
   for (const [name, fn] of Object.entries({ anthropic: runAnthropic, openai: runOpenAI })) {
     if (which === name || which === "both") {
@@ -87,8 +117,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { dollars, runAnthropic, runOpenAI };
+export { dollars, runAnthropic, runOpenAI };

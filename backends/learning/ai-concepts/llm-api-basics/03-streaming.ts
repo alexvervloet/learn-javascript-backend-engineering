@@ -1,7 +1,7 @@
 /**
  * Streaming: print tokens as they arrive instead of waiting for the whole reply.
  *
- * Run: `node 03-streaming.js [anthropic|openai]`
+ * Run: `npx tsx 03-streaming.ts [anthropic|openai]`
  *
  * Without streaming, the user stares at a frozen screen until the entire response is
  * generated — which can be many seconds for a long answer. Streaming delivers the
@@ -13,11 +13,20 @@
  * you iterate over with `for await`.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const PROMPT = "Explain how a TCP handshake works, in about 4 sentences.";
 
@@ -48,11 +57,13 @@ async function streamOpenAI() {
   process.stdout.write("\n");
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
   for (const [name, fn] of Object.entries({ anthropic: streamAnthropic, openai: streamOpenAI })) {
     if (which === name || which === "both") {
@@ -67,8 +78,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { streamAnthropic, streamOpenAI };
+export { streamAnthropic, streamOpenAI };

@@ -44,7 +44,7 @@ cos(a, b) = dot(a, b) / (||a|| * ||b||)
 
 A raw cosine number only means something *within one model*. Each embedding model
 packs its vectors into its own range, so the same pair scores very differently
-depending on who embedded it. Running `01-generate-embeddings.js both` on the
+depending on who embedded it. Running `01-generate-embeddings.ts both` on the
 identical sentences:
 
 | | paraphrase (similar) | unrelated | separation |
@@ -68,12 +68,12 @@ toward zero. Same meaning, different scale. Two rules follow:
 
 | File | What it teaches |
 |---|---|
-| `01-generate-embeddings.js` | Turn text into a vector with OpenAI and Voyage; see the dimensions and that similar sentences score higher |
-| `02-semantic-search.js` | Embed a small corpus once, embed a query, rank by cosine similarity — semantic search that ignores exact wording |
+| `01-generate-embeddings.ts` | Turn text into a vector with OpenAI and Voyage; see the dimensions and that similar sentences score higher |
+| `02-semantic-search.ts` | Embed a small corpus once, embed a query, rank by cosine similarity — semantic search that ignores exact wording |
 
 ## Where this connects
 
-- The retrieval step in [../rag/](../rag/) is exactly `02-semantic-search.js` at
+- The retrieval step in [../rag/](../rag/) is exactly `02-semantic-search.ts` at
   scale, backed by a vector database.
 - This repo already has a real vector store: the
   [pgvector demo](../../database-concepts/pgvector-demo/) stores embeddings in
@@ -83,6 +83,6 @@ toward zero. Same meaning, different scale. Two rules follow:
 
 ```bash
 # Needs VOYAGE_API_KEY (free tier). OPENAI_API_KEY is optional — only for the OpenAI side.
-node 01-generate-embeddings.js          # defaults to Voyage (free)
-node 02-semantic-search.js both         # add OpenAI too (needs OpenAI credit)
+npx tsx 01-generate-embeddings.ts          # defaults to Voyage (free)
+npx tsx 02-semantic-search.ts both         # add OpenAI too (needs OpenAI credit)
 ```

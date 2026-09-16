@@ -25,13 +25,13 @@ query → embed → find nearest chunks → stuff them into the
 ```
 
 Each piece you've already met:
-- **chunk** — split documents into retrievable pieces ([01](01-chunking.js)).
+- **chunk** — split documents into retrievable pieces ([01](01-chunking.ts)).
 - **embed / retrieve** — turn text into vectors and find the closest ones
   ([../embeddings/](../embeddings/)).
 - **augment / generate** — build a prompt with the retrieved context and call the
   model ([../llm-api-basics/](../llm-api-basics/), [../prompt-engineering/](../prompt-engineering/)).
 
-[02](02-pipeline.js) wires all of it into one end-to-end example.
+[02](02-pipeline.ts) wires all of it into one end-to-end example.
 
 ## Why chunk at all?
 
@@ -51,8 +51,8 @@ instantly, with no retraining. Fine-tuning bakes knowledge into frozen weights.
 
 | File | What it teaches |
 |---|---|
-| `01-chunking.js` | Splitting a document into overlapping chunks (no API calls — pure text handling) |
-| `02-pipeline.js` | The full loop: index a tiny corpus, retrieve for a query, generate a grounded answer with Claude *and* GPT — and refuse to answer when the context doesn't contain it |
+| `01-chunking.ts` | Splitting a document into overlapping chunks (no API calls — pure text handling) |
+| `02-pipeline.ts` | The full loop: index a tiny corpus, retrieve for a query, generate a grounded answer with Claude *and* GPT — and refuse to answer when the context doesn't contain it |
 
 ## What you need
 
@@ -66,7 +66,7 @@ instantly, with no retraining. Fine-tuning bakes knowledge into frozen weights.
 ## How to run
 
 ```bash
-node 01-chunking.js
-node 02-pipeline.js            # generates with both providers
-node 02-pipeline.js anthropic
+npx tsx 01-chunking.ts
+npx tsx 02-pipeline.ts            # generates with both providers
+npx tsx 02-pipeline.ts anthropic
 ```

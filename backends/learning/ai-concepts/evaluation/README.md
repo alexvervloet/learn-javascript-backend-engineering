@@ -15,12 +15,12 @@ byte-identical.
 
 **Exact / programmatic checks** — when there's a known correct answer (a label, a
 number, a JSON field), compare directly. Cheap, fast, deterministic. Use this
-whenever you can. ([02](02-eval-harness.js))
+whenever you can. ([02](02-eval-harness.ts))
 
 **LLM-as-judge** — when "correct" is fuzzy (is this summary faithful? is this
 answer helpful and grounded?), use a *second* model call to grade the first
 against a rubric, returning a structured score. More expensive and itself
-imperfect, but it scales judgment you'd otherwise do by hand. ([01](01-llm-as-judge.js))
+imperfect, but it scales judgment you'd otherwise do by hand. ([01](01-llm-as-judge.ts))
 
 ## The key idea: a fixed test set
 
@@ -33,20 +33,20 @@ the new prompt is better" is a vibe, not a measurement.
 
 | File | What it teaches |
 |---|---|
-| `01-llm-as-judge.js` | Use a model to grade another model's answer against a rubric, returning a structured pass/score + reason |
-| `02-eval-harness.js` | Run a fixed test set through the system, score each case programmatically, report an accuracy number you can track across prompt changes |
+| `01-llm-as-judge.ts` | Use a model to grade another model's answer against a rubric, returning a structured pass/score + reason |
+| `02-eval-harness.ts` | Run a fixed test set through the system, score each case programmatically, report an accuracy number you can track across prompt changes |
 
 ## Where this connects
 
 - It's the same instinct as [../../testing-concepts/](../../testing-concepts/),
   applied to probabilistic output — a fixed dataset plus a scorer is a test suite.
-- The judge in [01](01-llm-as-judge.js) leans on
+- The judge in [01](01-llm-as-judge.ts) leans on
   [../structured-outputs/](../structured-outputs/) to get a machine-readable
   verdict.
 
 ## How to run
 
 ```bash
-node 01-llm-as-judge.js
-node 02-eval-harness.js anthropic
+npx tsx 01-llm-as-judge.ts
+npx tsx 02-eval-harness.ts anthropic
 ```

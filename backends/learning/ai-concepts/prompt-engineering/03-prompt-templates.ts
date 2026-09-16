@@ -1,7 +1,7 @@
 /**
  * Prompt templates: separate fixed instructions from runtime data.
  *
- * Run: `node 03-prompt-templates.js [anthropic|openai]`
+ * Run: `npx tsx 03-prompt-templates.ts [anthropic|openai]`
  *
  * In a real service a prompt has variables — the user's text, a tone, a length.
  * Don't scatter template literals everywhere. Build ONE template where:
@@ -15,14 +15,23 @@
  * parameterized.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 // The template builder. Note the <document> delimiters around the untrusted text.
-function buildPrompt(document, tone, maxWords) {
+function buildPrompt(document: string, tone: string, maxWords: number) {
   return `You rewrite text to a target tone. Keep the meaning identical.
 Tone: ${tone}
 Maximum length: ${maxWords} words.
@@ -35,7 +44,7 @@ ${document}
 </document>`;
 }
 
-async function chat(provider, prompt) {
+async function chat(provider: string, prompt: string) {
   if (provider === "anthropic") {
     const client = new Anthropic();
     const r = await client.messages.create({
@@ -52,14 +61,18 @@ async function chat(provider, prompt) {
     max_tokens: 512,
     messages: [{ role: "user", content: prompt }],
   });
-  return r.choices[0].message.content.trim();
+  // The content of a choice is nullable — a refusal or a tool call leaves it
+  // empty — so it is defaulted rather than assumed.
+  return (r.choices[0]?.message.content ?? "").trim();
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
   const doc = "ugh the deploy broke again because someone pushed straight to main, classic";
 
@@ -80,8 +93,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { buildPrompt, chat };
+export { buildPrompt, chat };

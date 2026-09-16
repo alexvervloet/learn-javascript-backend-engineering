@@ -13,21 +13,21 @@ them require a different model or any training — just better input.
 
 ## The techniques that matter
 
-**Zero-shot** — just ask. Works for easy, common tasks. ([01](01-zero-vs-few-shot.js))
+**Zero-shot** — just ask. Works for easy, common tasks. ([01](01-zero-vs-few-shot.ts))
 
 **Few-shot** — show 2-5 worked examples before the real input. The model
 pattern-matches your examples, which pins down format and edge-case handling far
 better than a paragraph of instructions. This is the highest-leverage trick in the
-module. ([01](01-zero-vs-few-shot.js))
+module. ([01](01-zero-vs-few-shot.ts))
 
 **Chain-of-thought (CoT)** — ask the model to reason step by step before
 answering. Trades tokens (and latency) for accuracy on anything involving logic,
-math, or multi-step deduction. ([02](02-chain-of-thought.js))
+math, or multi-step deduction. ([02](02-chain-of-thought.ts))
 
 **Prompt templates** — stop concatenating template literals ad hoc. A template
 separates the fixed instructions from the runtime data, and uses delimiters so user
 input can't be confused with your instructions (a first taste of the injection
-problem you'll meet in [guardrails/](../guardrails/)). ([03](03-prompt-templates.js))
+problem you'll meet in [guardrails/](../guardrails/)). ([03](03-prompt-templates.ts))
 
 ## When would you use this?
 
@@ -42,14 +42,14 @@ problem you'll meet in [guardrails/](../guardrails/)). ([03](03-prompt-templates
 
 | File | What it teaches |
 |---|---|
-| `01-zero-vs-few-shot.js` | The same classification task zero-shot vs few-shot; watch consistency jump |
-| `02-chain-of-thought.js` | A word problem the model flubs when rushed and nails when asked to reason first |
-| `03-prompt-templates.js` | A reusable template that separates instructions from data with delimiters |
+| `01-zero-vs-few-shot.ts` | The same classification task zero-shot vs few-shot; watch consistency jump |
+| `02-chain-of-thought.ts` | A word problem the model flubs when rushed and nails when asked to reason first |
+| `03-prompt-templates.ts` | A reusable template that separates instructions from data with delimiters |
 | `04-fine-tuning-notes.md` | **Notes only** — when fine-tuning is worth it (rarely, for most teams) and when prompting/RAG wins |
 
 ## How to run
 
 ```bash
-node 01-zero-vs-few-shot.js            # both providers
-node 02-chain-of-thought.js anthropic  # one provider
+npx tsx 01-zero-vs-few-shot.ts            # both providers
+npx tsx 02-chain-of-thought.ts anthropic  # one provider
 ```

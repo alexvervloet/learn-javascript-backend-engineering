@@ -1,7 +1,7 @@
 /**
  * System prompts (steering behavior) and multi-turn conversations.
  *
- * Run: `node 02-system-prompts.js [anthropic|openai]`
+ * Run: `npx tsx 02-system-prompts.ts [anthropic|openai]`
  *
  * Two lessons here:
  *   1. The SAME user question gives very different answers depending on the system
@@ -11,22 +11,35 @@
  *      includes the first exchange — that's the only reason the model "remembers".
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const SYSTEM = "You are a grumpy senior engineer. Answer correctly but tersely, with a sigh.";
 const TURN_1 = "What is a database index?";
 const TURN_2 = "Could it ever slow things down?"; // 'it' only makes sense if turn 1 is remembered
 
-async function runAnthropic() {
+async function runAnthropic(): Promise<void> {
   const client = new Anthropic();
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
 
   // Anthropic: system is a TOP-LEVEL parameter, not a message.
-  const history = [{ role: "user", content: TURN_1 }];
+  // Anthropic and OpenAI each define their own message-parameter type, and the
+  // `role` in both is a fixed union rather than a string. Annotating the array
+  // with the SDK type is what catches a typo like "assistent" — a plain array
+  // literal infers `role: string` and no longer matches.
+  const history: Anthropic.MessageParam[] = [{ role: "user", content: TURN_1 }];
   const r1 = await client.messages.create({ model, max_tokens: 1024, system: SYSTEM, messages: history });
   const a1 = r1.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   console.log("A1:", a1);
@@ -38,12 +51,12 @@ async function runAnthropic() {
   console.log("A2:", r2.content.filter((b) => b.type === "text").map((b) => b.text).join(""));
 }
 
-async function runOpenAI() {
+async function runOpenAI(): Promise<void> {
   const client = new OpenAI();
   const model = process.env.OPENAI_MODEL || "gpt-4o";
 
   // OpenAI: system is the FIRST message in the list (role="system").
-  const history = [
+  const history: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: SYSTEM },
     { role: "user", content: TURN_1 },
   ];
@@ -57,11 +70,13 @@ async function runOpenAI() {
   console.log("A2:", r2.choices[0].message.content);
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
   for (const [name, fn] of Object.entries({ anthropic: runAnthropic, openai: runOpenAI })) {
     if (which === name || which === "both") {
@@ -76,8 +91,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { runAnthropic, runOpenAI };
+export { runAnthropic, runOpenAI };

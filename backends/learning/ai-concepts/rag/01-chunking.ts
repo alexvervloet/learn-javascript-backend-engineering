@@ -1,7 +1,7 @@
 /**
  * Chunking: split a document into overlapping pieces for retrieval.
  *
- * Run: `node 01-chunking.js`  (no API calls — pure text handling)
+ * Run: `npx tsx 01-chunking.ts`  (no API calls — pure text handling)
  *
  * Before you can embed and retrieve a document, you cut it into chunks small enough
  * to be specific but large enough to be self-contained. Overlap carries a little
@@ -12,6 +12,8 @@
  * paragraph boundaries (or token counts), but the size/overlap trade-off is the same
  * idea everywhere.
  */
+
+import { fileURLToPath } from "node:url";
 
 const DOCUMENT =
   "Our return policy allows refunds within 30 days of purchase. " +
@@ -24,7 +26,7 @@ const DOCUMENT =
  * Slide a window of `size` characters across the text, stepping by `size - overlap`
  * so consecutive chunks share `overlap` characters.
  */
-function chunkText(text, size, overlap) {
+function chunkText(text: string, size: number, overlap: number) {
   if (overlap >= size) throw new Error("overlap must be smaller than size");
   const step = size - overlap;
   const chunks = [];
@@ -44,8 +46,10 @@ function main() {
   console.log("that overlap is what keeps a boundary-straddling sentence retrievable.");
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { chunkText };
+export { chunkText };

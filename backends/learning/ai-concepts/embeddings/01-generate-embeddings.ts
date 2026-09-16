@@ -1,7 +1,7 @@
 /**
  * Turn text into vectors and measure meaning-similarity.
  *
- * Run: `node 01-generate-embeddings.js [openai|voyage]`
+ * Run: `npx tsx 01-generate-embeddings.ts [openai|voyage]`
  *
  * We embed three sentences. Two mean the same thing in different words; the third is
  * unrelated. The cosine similarity between the two paraphrases should be clearly
@@ -13,10 +13,19 @@
  * JS SDK, so we call its REST endpoint directly with `fetch`.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const OpenAI = require("openai");
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const SENTENCES = [
   "How do I reset my password?", //          0
@@ -24,7 +33,7 @@ const SENTENCES = [
   "The restaurant served great pasta.", //   2  (unrelated)
 ];
 
-function cosine(a, b) {
+function cosine(a: number[], b: number[]): number {
   let dot = 0;
   let na = 0;
   let nb = 0;
@@ -36,7 +45,14 @@ function cosine(a, b) {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-async function embedOpenAI(texts) {
+// Voyage has no official JS SDK, so its REST response is parsed by hand.
+// fetch().json() is unknown — nothing guarantees a remote API's shape — so
+// this interface is the claim being made about it, next to the call.
+interface VoyageEmbeddingResponse {
+  data: { embedding: number[] }[];
+}
+
+async function embedOpenAI(texts: string[]): Promise<number[][]> {
   const client = new OpenAI();
   const resp = await client.embeddings.create({
     model: process.env.OPENAI_EMBED_MODEL || "text-embedding-3-small",
@@ -46,7 +62,7 @@ async function embedOpenAI(texts) {
 }
 
 // Voyage has no official JS SDK; call the REST endpoint directly.
-async function embedVoyage(texts) {
+async function embedVoyage(texts: string[]): Promise<number[][]> {
   const key = process.env.VOYAGE_API_KEY;
   if (!key) throw new Error("VOYAGE_API_KEY is not set");
   const resp = await fetch("https://api.voyageai.com/v1/embeddings", {
@@ -59,15 +75,17 @@ async function embedVoyage(texts) {
     }),
   });
   if (!resp.ok) throw new Error(`Voyage API ${resp.status}: ${(await resp.text()).slice(0, 110)}`);
-  const json = await resp.json();
+  const json = (await resp.json()) as VoyageEmbeddingResponse;
   return json.data.map((d) => d.embedding);
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   // Voyage is free; pass "both"/"openai" to include OpenAI.
   const which = process.argv[2] || "voyage";
   for (const [name, fn] of Object.entries({ openai: embedOpenAI, voyage: embedVoyage })) {
@@ -85,8 +103,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { cosine, embedOpenAI, embedVoyage };
+export { cosine, embedOpenAI, embedVoyage };

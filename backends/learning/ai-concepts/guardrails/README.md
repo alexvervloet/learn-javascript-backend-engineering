@@ -11,10 +11,10 @@ feature, and it's squarely backend work.
 Two directions, two files:
 
 - **Input** — untrusted text can try to hijack your instructions
-  (*prompt injection*). [01](01-prompt-injection.js)
+  (*prompt injection*). [01](01-prompt-injection.ts)
 - **Output** — the model's response can be malformed, off-policy, or leak
   something it shouldn't, and your code shouldn't trust it blindly.
-  [02](02-output-validation.js)
+  [02](02-output-validation.ts)
 
 ## Prompt injection — the SQL injection of LLMs
 
@@ -27,12 +27,12 @@ the same way you handle untrusted input everywhere:
   tell the model that anything inside the data block is content, never commands.
 - **Keep authority in the system prompt**, not in user-supplied text.
 - **Never let model output trigger a dangerous action unchecked** — validate first
-  (that's [02](02-output-validation.js)).
+  (that's [02](02-output-validation.ts)).
 - **Assume it can still be bypassed** — so don't give the model unconstrained power
   over anything that matters (no raw SQL, no unsandboxed shell, no unscoped
   spending). Least privilege, as always.
 
-[01](01-prompt-injection.js) shows a naive prompt getting hijacked and a hardened
+[01](01-prompt-injection.ts) shows a naive prompt getting hijacked and a hardened
 one resisting the same attack.
 
 ## Output validation — don't trust the response
@@ -40,26 +40,26 @@ one resisting the same attack.
 Even with no attacker, output can be wrong: an unexpected category, an over-long
 blob, a leaked email address, broken JSON. Treat model output like any external
 input — validate against an allow-list / schema / rules *before* your code uses
-it, and have a fallback when it fails. [02](02-output-validation.js) shows
+it, and have a fallback when it fails. [02](02-output-validation.ts) shows
 allow-list checks, a PII/secret scan, and rejecting bad output.
 
 ## What the files cover
 
 | File | What it teaches |
 |---|---|
-| `01-prompt-injection.js` | A naive prompt being overridden by embedded instructions, and a delimited/hardened prompt that resists it |
-| `02-output-validation.js` | Validating output against an allow-list, length limits, and a simple PII/secret scan before trusting it |
+| `01-prompt-injection.ts` | A naive prompt being overridden by embedded instructions, and a delimited/hardened prompt that resists it |
+| `02-output-validation.ts` | Validating output against an allow-list, length limits, and a simple PII/secret scan before trusting it |
 
 ## Where this connects
 
 - The delimiter technique starts back in
-  [../prompt-engineering/03-prompt-templates.js](../prompt-engineering/03-prompt-templates.js).
+  [../prompt-engineering/03-prompt-templates.ts](../prompt-engineering/03-prompt-templates.ts).
 - Output validation is [../structured-outputs/](../structured-outputs/) taken
   seriously as a security boundary, not just a parsing convenience.
 
 ## How to run
 
 ```bash
-node 01-prompt-injection.js
-node 02-output-validation.js openai
+npx tsx 01-prompt-injection.ts
+npx tsx 02-output-validation.ts openai
 ```

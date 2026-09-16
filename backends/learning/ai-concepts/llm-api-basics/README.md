@@ -10,7 +10,7 @@ Both Anthropic and OpenAI model a request the same way: a list of messages, each
 tagged with a **role**. The model reads the conversation so far and writes the
 next assistant turn. The API is **stateless** — it remembers nothing between
 calls, so *you* resend the whole conversation every time (you'll feel this in
-[02](02-system-prompts.js) and again in tool use).
+[02](02-system-prompts.ts) and again in tool use).
 
 ## The mental model
 
@@ -32,17 +32,17 @@ calls, so *you* resend the whole conversation every time (you'll feel this in
 
 | File | What it teaches |
 |---|---|
-| `02-output-validation.js` | The absolute minimum request against both providers; how to dig the text out of each response shape |
-| `02-system-prompts.js` | Steering behavior with a system prompt; building a multi-turn conversation by hand (the API is stateless) |
-| `03-streaming.js` | Streaming tokens as they're generated, so a UI isn't frozen for 10 seconds |
-| `04-token-counting-cost.js` | Counting tokens *before* you send, and estimating what a call costs |
+| `02-output-validation.ts` | The absolute minimum request against both providers; how to dig the text out of each response shape |
+| `02-system-prompts.ts` | Steering behavior with a system prompt; building a multi-turn conversation by hand (the API is stateless) |
+| `03-streaming.ts` | Streaming tokens as they're generated, so a UI isn't frozen for 10 seconds |
+| `04-token-counting-cost.ts` | Counting tokens *before* you send, and estimating what a call costs |
 
 ## Why this matters for backend work
 
 - **Latency.** A non-streaming call blocks until the whole response is done.
-  Streaming ([03](03-streaming.js)) is how you keep a request feeling responsive.
+  Streaming ([03](03-streaming.ts)) is how you keep a request feeling responsive.
 - **Cost.** You pay per token, in and out. Knowing how to count tokens
-  ([04](04-token-counting-cost.js)) is the difference between a $5 feature and a
+  ([04](04-token-counting-cost.ts)) is the difference between a $5 feature and a
   $5,000 surprise.
 - **Statelessness.** Because the server holds no memory, conversation history is
   *your* job — usually a database row, replayed into `messages` on every call.
@@ -52,6 +52,6 @@ calls, so *you* resend the whole conversation every time (you'll feel this in
 ```bash
 npm install                  # from the repo root, installs the SDKs
 cp ../.env.example ../.env    # add your keys
-node 02-output-validation.js              # runs both providers
-node 02-output-validation.js anthropic    # or just one
+npx tsx 02-output-validation.ts              # runs both providers
+npx tsx 02-output-validation.ts anthropic    # or just one
 ```

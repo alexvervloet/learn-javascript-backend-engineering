@@ -26,7 +26,7 @@ This is the whole pattern — memorize it:
 5. Back to 2. Repeat until the model gives a normal answer.
 ```
 
-[02](02-agent-loop.js) implements exactly this as a `while` loop — that loop *is*
+[02](02-agent-loop.ts) implements exactly this as a `while` loop — that loop *is*
 an agent.
 
 ## Anthropic vs OpenAI, same shape
@@ -44,9 +44,9 @@ both return a structured tool-call request you must satisfy. The spellings diffe
 
 | File | What it teaches |
 |---|---|
-| `01-single-tool.js` | One tool, one round trip: see the request → execute → result → final answer cycle by hand |
-| `02-agent-loop.js` | The general `while` loop that keeps going until the model is done — the core of an agent |
-| `03-multi-tool.js` | Several tools; the model chooses which (and how many) to call |
+| `01-single-tool.ts` | One tool, one round trip: see the request → execute → result → final answer cycle by hand |
+| `02-agent-loop.ts` | The general `while` loop that keeps going until the model is done — the core of an agent |
+| `03-multi-tool.ts` | Several tools; the model chooses which (and how many) to call |
 
 ## When would you use this?
 
@@ -58,6 +58,6 @@ create ticket). Tool use is also how RAG retrieval can be wired
 ## How to run
 
 ```bash
-node 01-single-tool.js
-node 02-agent-loop.js openai
+npx tsx 01-single-tool.ts
+npx tsx 02-agent-loop.ts openai
 ```

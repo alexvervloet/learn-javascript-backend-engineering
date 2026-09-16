@@ -1,7 +1,7 @@
 /**
  * Output validation: treat the model's response as untrusted input.
  *
- * Run: `node 02-output-validation.js [anthropic|openai]`
+ * Run: `npx tsx 02-output-validation.ts [anthropic|openai]`
  *
  * Even with no attacker, model output can be wrong in ways your code must catch
  * before acting on it:
@@ -15,11 +15,20 @@
  * regenerate; never pass unvalidated model output to the next step.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const ALLOWED_LABELS = new Set(["BILLING", "BUG", "FEATURE"]);
 const MAX_LEN = 200;
@@ -32,8 +41,11 @@ const PATTERNS = {
   api_key: /\b(sk|pa)-[A-Za-z0-9]{8,}\b/,
 };
 
-function findViolations(text, { allowLabels = false } = {}) {
-  const problems = [];
+function findViolations(
+  text: string,
+  { allowLabels = false }: { allowLabels?: boolean } = {}
+): string[] {
+  const problems: string[] = [];
   if (allowLabels && !ALLOWED_LABELS.has(text.toUpperCase())) {
     problems.push(`label ${JSON.stringify(text.toUpperCase())} not in allow-list ${JSON.stringify([...ALLOWED_LABELS].sort())}`);
   }
@@ -46,7 +58,7 @@ function findViolations(text, { allowLabels = false } = {}) {
   return problems;
 }
 
-async function classify(provider, text) {
+async function classify(provider: string, text: string) {
   const system = "Classify the message as BILLING, BUG, or FEATURE. Reply with the label only.";
   if (provider === "anthropic") {
     const client = new Anthropic();
@@ -68,14 +80,18 @@ async function classify(provider, text) {
       { role: "user", content: text },
     ],
   });
-  return r.choices[0].message.content.trim();
+  // The content of a choice is nullable — a refusal or a tool call leaves it
+  // empty — so it is defaulted rather than assumed.
+  return (r.choices[0]?.message.content ?? "").trim();
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
 
   for (const provider of ["anthropic", "openai"]) {
@@ -99,8 +115,10 @@ async function main() {
   console.log(`  violations: ${JSON.stringify(findViolations(bad))}`);
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { findViolations, classify };
+export { findViolations, classify };

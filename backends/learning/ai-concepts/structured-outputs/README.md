@@ -12,12 +12,12 @@ it." It's what turns an LLM into a component you can put in a pipeline.
 
 ## The progression
 
-**1. Just ask for JSON** ([01](01-json-mode.js)) — instruct the model to return
+**1. Just ask for JSON** ([01](01-json-mode.ts)) — instruct the model to return
 JSON and parse it. Works, but it's fragile: the model might wrap it in
 ```` ```json ```` fences, add a "Here you go:" preamble, or hallucinate a field.
 You're parsing hope.
 
-**2. Enforce a schema** ([02](02-zod-schema.js)) — give the API a schema (via a Zod
+**2. Enforce a schema** ([02](02-zod-schema.ts)) — give the API a schema (via a Zod
 schema) and let it *constrain generation* to match. The provider guarantees the
 shape; you get back a validated object, not a string. This is the production
 answer. Both Anthropic (`messages.parse` + `zodOutputFormat`) and OpenAI
@@ -25,7 +25,7 @@ answer. Both Anthropic (`messages.parse` + `zodOutputFormat`) and OpenAI
 schema. (Zod is a runtime schema validator for JavaScript — declare the shape once,
 validate against it.)
 
-**3. Handle the failures that remain** ([03](03-handling-failures.js)) — even with
+**3. Handle the failures that remain** ([03](03-handling-failures.ts)) — even with
 schema enforcement things go wrong: the model refuses, the output is truncated at
 `max_tokens`, or a value is schema-valid but semantically wrong. Defensive parsing
 and a retry loop.
@@ -40,13 +40,13 @@ form. Basically every backend LLM feature.
 
 | File | What it teaches |
 |---|---|
-| `01-json-mode.js` | Asking for JSON and parsing it — and the failure modes that make this fragile |
-| `02-zod-schema.js` | Defining a Zod schema once and getting a validated object from both providers |
-| `03-handling-failures.js` | Catching validation errors, refusals, and truncation; a simple retry-on-invalid loop |
+| `01-json-mode.ts` | Asking for JSON and parsing it — and the failure modes that make this fragile |
+| `02-zod-schema.ts` | Defining a Zod schema once and getting a validated object from both providers |
+| `03-handling-failures.ts` | Catching validation errors, refusals, and truncation; a simple retry-on-invalid loop |
 
 ## How to run
 
 ```bash
-node 01-json-mode.js
-node 02-zod-schema.js anthropic
+npx tsx 01-json-mode.ts
+npx tsx 02-zod-schema.ts anthropic
 ```

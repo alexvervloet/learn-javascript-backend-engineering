@@ -1,7 +1,7 @@
 /**
  * When structured output still goes wrong: validate, detect, retry.
  *
- * Run: `node 03-handling-failures.js [anthropic|openai]`
+ * Run: `npx tsx 03-handling-failures.ts [anthropic|openai]`
  *
  * Schema enforcement removes most failures, but not all. In production you still
  * guard against:
@@ -18,12 +18,21 @@
  * useful pattern even when you do use enforcement.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const z = require("zod");
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+import z from "zod";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const Product = z.object({
   name: z.string(),
@@ -35,7 +44,7 @@ const BASE_PROMPT =
   "a mechanical keyboard that costs forty-nine dollars ninety-nine. Return ONLY JSON.";
 
 /** Returns [text, stopReason]. stopReason flags refusal / truncation. */
-async function call(provider, prompt) {
+async function call(provider: string, prompt: string) {
   if (provider === "anthropic") {
     const client = new Anthropic();
     const r = await client.messages.create({
@@ -59,7 +68,7 @@ async function call(provider, prompt) {
   return [choice.message.content, choice.finish_reason]; // "stop" normally, "length" if truncated
 }
 
-function stripFences(text) {
+function stripFences(text: string) {
   text = (text || "").trim();
   if (text.startsWith("```")) {
     text = text.split("```")[1].replace(/^json/, "").trim();
@@ -67,7 +76,7 @@ function stripFences(text) {
   return text;
 }
 
-async function getProduct(provider, maxAttempts = 3) {
+async function getProduct(provider: string, maxAttempts = 3): Promise<unknown> {
   let prompt = BASE_PROMPT;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const [text, reason] = await call(provider, prompt);
@@ -79,10 +88,10 @@ async function getProduct(provider, maxAttempts = 3) {
 
     let parsed;
     try {
-      parsed = JSON.parse(stripFences(text));
+      parsed = JSON.parse(stripFences(text ?? ""));
     } catch (err) {
       console.log(`  attempt ${attempt}: invalid (SyntaxError); feeding error back`);
-      prompt = `${BASE_PROMPT}\n\nYour previous answer was invalid: ${err.message}\nFix it.`;
+      prompt = `${BASE_PROMPT}\n\nYour previous answer was invalid: ${err instanceof Error ? err.message : String(err)}\nFix it.`;
       continue;
     }
 
@@ -98,11 +107,13 @@ async function getProduct(provider, maxAttempts = 3) {
   throw new Error(`gave up after ${maxAttempts} attempts`);
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
   for (const provider of ["anthropic", "openai"]) {
     if (which !== provider && which !== "both") continue;
@@ -116,8 +127,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { Product, getProduct };
+export { Product, getProduct };

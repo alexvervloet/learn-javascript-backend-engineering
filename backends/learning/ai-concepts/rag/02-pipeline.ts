@@ -1,7 +1,7 @@
 /**
  * End-to-end RAG: retrieve relevant context, then generate a grounded answer.
  *
- * Run: `node 02-pipeline.js [anthropic|openai]`
+ * Run: `npx tsx 02-pipeline.ts [anthropic|openai]`
  *
  * The full loop:
  *   1. INDEX  — embed each document chunk (Voyage embeddings, free tier) and keep them.
@@ -16,11 +16,20 @@
  * question outside the context, the "I don't know" rule curbs hallucination.
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const KNOWLEDGE_BASE = [
   "Acme Cloud's free tier includes 5 GB of storage and 100 GB of monthly bandwidth.",
@@ -31,7 +40,7 @@ const KNOWLEDGE_BASE = [
 ];
 const QUESTION = "What's the API rate limit, and how much storage does the free tier give me?";
 
-function cosine(a, b) {
+function cosine(a: number[], b: number[]): number {
   let dot = 0;
   let na = 0;
   let nb = 0;
@@ -46,7 +55,14 @@ function cosine(a, b) {
 // Retrieval uses Voyage (Anthropic-recommended embeddings, generous free tier),
 // so the whole pipeline runs without an OpenAI key. Swap to OpenAI's
 // client.embeddings.create if you prefer — the pipeline is identical either way.
-async function embed(texts) {
+// Voyage has no official JS SDK, so its REST response is parsed by hand.
+// fetch().json() is unknown — nothing guarantees a remote API's shape — so this
+// interface is the claim being made about it, next to the call.
+interface VoyageEmbeddingResponse {
+  data: { embedding: number[] }[];
+}
+
+async function embed(texts: string[]): Promise<number[][]> {
   const key = process.env.VOYAGE_API_KEY;
   if (!key) throw new Error("VOYAGE_API_KEY is not set");
   const resp = await fetch("https://api.voyageai.com/v1/embeddings", {
@@ -59,21 +75,33 @@ async function embed(texts) {
     }),
   });
   if (!resp.ok) throw new Error(`Voyage API ${resp.status}: ${(await resp.text()).slice(0, 110)}`);
-  return (await resp.json()).data.map((d) => d.embedding);
+  const json = (await resp.json()) as VoyageEmbeddingResponse;
+  return json.data.map((d) => d.embedding);
 }
 
-async function retrieve(question, k = 2) {
+// One retrieved document and its similarity score. An array of
+// [number, string] would infer as (number | string)[] and lose which is which.
+interface Hit {
+  score: number;
+  doc: string;
+}
+
+async function retrieve(question: string, k = 2): Promise<string[]> {
   const vectors = await embed([...KNOWLEDGE_BASE, question]);
-  const qVec = vectors[vectors.length - 1];
+  const qVec = vectors.at(-1);
+  if (!qVec) throw new Error("No query vector returned");
   const docVecs = vectors.slice(0, -1);
-  return docVecs
-    .map((d, i) => [cosine(qVec, d), KNOWLEDGE_BASE[i]])
-    .sort((a, b) => b[0] - a[0])
+  const ranked: Hit[] = docVecs.map((d, i) => ({
+    score: cosine(qVec, d),
+    doc: KNOWLEDGE_BASE[i] ?? "",
+  }));
+  return ranked
+    .sort((a, b) => b.score - a.score)
     .slice(0, k)
-    .map(([, doc]) => doc);
+    .map(({ doc }) => doc);
 }
 
-function buildPrompt(question, context) {
+function buildPrompt(question: string, context: string[]): string {
   const joined = context.map((c) => `- ${c}`).join("\n");
   return (
     "Answer the question using ONLY the context below. " +
@@ -82,7 +110,7 @@ function buildPrompt(question, context) {
   );
 }
 
-async function generate(provider, prompt) {
+async function generate(provider: string, prompt: string) {
   if (provider === "anthropic") {
     const client = new Anthropic();
     const r = await client.messages.create({
@@ -99,14 +127,18 @@ async function generate(provider, prompt) {
     max_tokens: 512,
     messages: [{ role: "user", content: prompt }],
   });
-  return r.choices[0].message.content.trim();
+  // The content of a choice is nullable — a refusal or a tool call leaves it
+  // empty — so it is defaulted rather than assumed.
+  return (r.choices[0]?.message.content ?? "").trim();
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
 
   let context;
@@ -134,8 +166,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { cosine, embed, retrieve, buildPrompt, generate };
+export { cosine, embed, retrieve, buildPrompt, generate };

@@ -1,7 +1,7 @@
 /**
  * Chain-of-thought: make the model reason before it answers.
  *
- * Run: `node 02-chain-of-thought.js [anthropic|openai]`
+ * Run: `npx tsx 02-chain-of-thought.ts [anthropic|openai]`
  *
  * We ask a small multi-step word problem two ways:
  *   - "answer only" — the model blurts a number and often gets it wrong.
@@ -13,11 +13,20 @@
  * prompting is how you get the same effect from a standard chat model.)
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 const PROBLEM =
   "A server handles 1,200 requests/minute. 35% are cache hits taking 2ms each; " +
@@ -26,7 +35,7 @@ const PROBLEM =
 const ANSWER_ONLY = PROBLEM + "Respond with only the number.";
 const COT = PROBLEM + "Think step by step. Put the final number on its own last line prefixed with 'ANSWER: '.";
 
-async function chat(provider, user) {
+async function chat(provider: string, user: string) {
   if (provider === "anthropic") {
     const client = new Anthropic();
     const r = await client.messages.create({
@@ -43,14 +52,18 @@ async function chat(provider, user) {
     max_tokens: 1024,
     messages: [{ role: "user", content: user }],
   });
-  return r.choices[0].message.content.trim();
+  // The content of a choice is nullable — a refusal or a tool call leaves it
+  // empty — so it is defaulted rather than assumed.
+  return (r.choices[0]?.message.content ?? "").trim();
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   // Correct answer: 0.35*2 + 0.65*50 = 0.7 + 32.5 = 33.2 ms
   const which = process.argv[2] || "both";
   for (const provider of ["anthropic", "openai"]) {
@@ -69,8 +82,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { chat };
+export { chat };

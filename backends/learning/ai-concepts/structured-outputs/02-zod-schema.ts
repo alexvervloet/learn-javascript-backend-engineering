@@ -1,7 +1,7 @@
 /**
  * Schema-enforced output: define a Zod schema, get back a validated object.
  *
- * Run: `node 02-zod-schema.js [anthropic|openai]`
+ * Run: `npx tsx 02-zod-schema.ts [anthropic|openai]`
  *
  * This is the production answer to "I need data, not text." You define the shape
  * ONCE as a Zod schema and hand it to the SDK's parse helper. The provider
@@ -19,14 +19,23 @@
  *                -> .choices[0].message.parsed
  */
 
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const z = require("zod");
-const Anthropic = require("@anthropic-ai/sdk");
-const { zodOutputFormat } = require("@anthropic-ai/sdk/helpers/zod");
-const OpenAI = require("openai");
-const { zodResponseFormat } = require("openai/helpers/zod");
+import Anthropic from "@anthropic-ai/sdk";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import z from "zod";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// dotenv has no ESM default-export config helper in this version, so the
+// module is imported and its config() called explicitly. It must run before
+// any client below reads an API key out of process.env.
+dotenv.config({ path: path.join(here, "..", ".env") });
 
 // The exact shape we want back. Field types and the enums are enforced.
 const SupportTicket = z.object({
@@ -63,17 +72,25 @@ async function parseOpenAI() {
   return r.choices[0].message.parsed;
 }
 
-function brief(err) {
-  return `${err?.constructor?.name || "Error"}: ${String(err?.message || err).split("\n")[0].slice(0, 110)}`;
+function brief(err: unknown): string {
+  const name = err instanceof Error ? err.constructor.name : "Error";
+  const message = err instanceof Error ? err.message : String(err);
+  return `${name}: ${message.split("\n")[0]?.slice(0, 110)}`;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const which = process.argv[2] || "both";
   for (const [provider, fn] of Object.entries({ anthropic: parseAnthropic, openai: parseOpenAI })) {
     if (which !== provider && which !== "both") continue;
     console.log(`\n=== ${provider} ===`);
     try {
+      // parsed_output is null when the model returns something the schema
+      // rejects — the case this module exists to show.
       const ticket = await fn(); // already a validated object matching SupportTicket
+      if (!ticket) {
+        console.log("  model returned nothing matching the schema");
+        continue;
+      }
       console.log(ticket);
       // Because it's a real object, your code can branch on it with confidence:
       if (ticket.needs_human && ticket.priority === "high") {
@@ -86,8 +103,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 
-module.exports = { SupportTicket, parseAnthropic, parseOpenAI };
+export { SupportTicket, parseAnthropic, parseOpenAI };
