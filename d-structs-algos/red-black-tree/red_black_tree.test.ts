@@ -1,14 +1,21 @@
-const { RBTree } = require("./red_black_tree");
-const { getUsers } = require("./user");
+import { test, expect } from "@jest/globals";
+import { RBTree } from "./red_black_tree.js";
+import type { RBNode } from "./red_black_tree.js";
+import { getUsers, User } from "./user.js";
 
-function inorder(node, NIL) {
+function inorder(node: RBNode<User> | null, NIL: RBNode<User>): User[] {
   if (node === NIL || node === null) {
     return [];
   }
-  return [...inorder(node.left, NIL), node.val, ...inorder(node.right, NIL)];
+  const val = node.val;
+  return [
+    ...inorder(node.left, NIL),
+    ...(val === null ? [] : [val]),
+    ...inorder(node.right, NIL),
+  ];
 }
 
-function hasDoubleRed(node, NIL) {
+function hasDoubleRed(node: RBNode<User> | null, NIL: RBNode<User>): boolean {
   if (node === NIL || node === null) {
     return false;
   }
@@ -22,7 +29,7 @@ function hasDoubleRed(node, NIL) {
   return hasDoubleRed(node.left, NIL) || hasDoubleRed(node.right, NIL);
 }
 
-function blackHeight(node, NIL) {
+function blackHeight(node: RBNode<User> | null, NIL: RBNode<User>): number {
   if (node === NIL || node === null) {
     return 0;
   }
@@ -38,7 +45,7 @@ const cases = [4, 8, 10];
 
 test.each(cases)("RBTree stays valid after inserting %p users", (numUsers) => {
   const users = getUsers(numUsers);
-  const tree = new RBTree();
+  const tree = new RBTree<User>();
   for (const user of users) {
     tree.insert(user);
   }
@@ -46,7 +53,7 @@ test.each(cases)("RBTree stays valid after inserting %p users", (numUsers) => {
   const traversal = inorder(tree.root, tree.NIL);
 
   const isSorted = traversal.every(
-    (val, i) => i === 0 || traversal[i - 1] < val
+    (val, i) => i === 0 || Number(traversal[i - 1]) < Number(val)
   );
   const traversalIds = traversal.map((u) => u.id).sort((a, b) => a - b);
   const userIds = users.map((u) => u.id).sort((a, b) => a - b);
