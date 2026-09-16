@@ -8,9 +8,10 @@
 
 import { test, expect, beforeEach, afterEach } from "@jest/globals";
 import { graphql } from "graphql";
-import { schema, makeContext } from "./schema.js";
+
 import * as db from "./data.js";
 import { makeAuthorLoader } from "./loaders.js";
+import { schema, makeContext } from "./schema.js";
 
 // A GraphQL response is not statically typed without a codegen step: the query
 // is a string, so the compiler cannot know what shape comes back. These demos

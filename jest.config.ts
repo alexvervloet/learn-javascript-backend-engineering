@@ -14,8 +14,9 @@
 // and reset it between tests without write races (the d-structs-algos suites are
 // trivially fast, so serial execution costs nothing meaningful).
 
-/** @type {import("jest").Config} */
-export default {
+import type { Config } from "jest";
+
+const config: Config = {
   testEnvironment: "node",
   testMatch: ["**/*.test.ts"],
   globalSetup: "<rootDir>/backends/bookmark-manager/tests/globalSetup.ts",
@@ -37,3 +38,5 @@ export default {
   transformIgnorePatterns: ["/node_modules/", "/generated/"],
   modulePathIgnorePatterns: ["<rootDir>/frontends/", "<rootDir>/.history/"],
 };
+
+export default config;

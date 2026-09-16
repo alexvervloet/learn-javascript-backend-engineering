@@ -17,8 +17,8 @@
 import { describe, test, expect, beforeEach, afterEach } from "@jest/globals";
 
 import { createDb } from "./db.js";
-import * as repository from "./repository.js";
 import { makeUserFactory, makePostFactory } from "./factories.js";
+import * as repository from "./repository.js";
 
 const db = createDb();
 const makeUser = makeUserFactory(db);

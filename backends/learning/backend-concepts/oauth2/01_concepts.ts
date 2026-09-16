@@ -20,9 +20,8 @@
  * Run:  npx tsx 01_concepts.ts   (no credentials needed — prints URLs + explains)
  */
 
-import { fileURLToPath } from "node:url";
-
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 // Step 1: build the authorization URL the browser is redirected to.
 function buildGithubAuthUrl(

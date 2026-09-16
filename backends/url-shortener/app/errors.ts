@@ -1,7 +1,9 @@
 // HTTP error type + centralized error handling. Provides an HttpError class and
 // an async wrapper so thrown/rejected errors reach the error middleware.
 
-import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from "express";
+import type { ErrorRequestHandler, NextFunction, RequestHandler, Response } from "express";
+
+import type { AppRequest } from "./request.js";
 
 type ErrorHeaders = Record<string, string>;
 
@@ -30,8 +32,11 @@ function isPrismaErrorWithCode(err: unknown, code: string): boolean {
 }
 
 // Wrap an async handler so rejected promises reach the error middleware.
+// The callback receives an AppRequest rather than a bare Request, which is what
+// lets handlers reach for req.user and req.validated. AppRequest only adds
+// optional fields to Request, so widening at the boundary is sound.
 function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => unknown
+  fn: (req: AppRequest, res: Response, next: NextFunction) => unknown
 ): RequestHandler {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }

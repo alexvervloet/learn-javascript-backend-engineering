@@ -11,9 +11,9 @@
  * Run:  npx tsx migrate_data.ts   (needs a Postgres `library` db with the schema applied)
  */
 
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import path from "node:path";
 import knexLib from "knex";
 
 // ESM has no __dirname. This is the equivalent.

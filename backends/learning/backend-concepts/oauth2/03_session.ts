@@ -16,12 +16,12 @@
  * Run:  npx tsx 03_session.ts   (same GitHub OAuth app + .env as 02_github.ts)
  */
 
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-import crypto from "node:crypto";
 import express from "express";
-import session from "express-session";
 import type { Request, Response, NextFunction } from "express";
+import session from "express-session";
 import jwt from "jsonwebtoken";
 
 const app = express();

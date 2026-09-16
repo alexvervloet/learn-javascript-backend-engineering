@@ -17,8 +17,9 @@
  * Run:  docker compose up -d (Postgres)  →  npx tsx 03_connection_pool.ts
  */
 
-import * as db from "./db.js";
 import type { Pool } from "pg";
+
+import * as db from "./db.js";
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 

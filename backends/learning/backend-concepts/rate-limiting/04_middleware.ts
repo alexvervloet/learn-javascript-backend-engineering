@@ -15,10 +15,11 @@
  *   for i in $(seq 1 5); do curl -si localhost:8000/search | head -1; done
  */
 
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-import crypto from "node:crypto";
 import express from "express";
+
 import * as redisRl from "./redis_rl.js";
 
 const app = express();

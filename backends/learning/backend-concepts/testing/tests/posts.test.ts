@@ -10,9 +10,10 @@
 
 import { describe, test, expect } from "@jest/globals";
 import request from "supertest";
+
+import type { PostRow } from "../app/db.js";
 import { app } from "../app/main.js";
 import { db, installIsolation, makeUser, makePost } from "./helpers.js";
-import type { PostRow } from "../app/db.js";
 
 installIsolation();
 

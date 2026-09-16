@@ -13,9 +13,9 @@
  *   curl -X POST 'localhost:8000/orders?item=keyboard'
  */
 
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-import crypto from "node:crypto";
 import express from "express";
 
 // The envelope every webhook in this folder sends. Naming it keeps the sender

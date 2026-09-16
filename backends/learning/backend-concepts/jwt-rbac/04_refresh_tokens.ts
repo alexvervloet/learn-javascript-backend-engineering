@@ -16,12 +16,12 @@
  * Run:  npx tsx 04_refresh_tokens.ts
  */
 
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-import crypto from "node:crypto";
 import express from "express";
-import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
 type Role = "admin" | "viewer";
 

@@ -17,9 +17,9 @@
  *   or open http://localhost:8000
  */
 
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import path from "node:path";
 import express from "express";
 import type { Response } from "express";
 

@@ -16,9 +16,8 @@
  * Run:  npx tsx 03_signing.ts
  */
 
-import { fileURLToPath } from "node:url";
-
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 const SECRET = "shared-webhook-secret-never-send-this-in-a-request";
 const TOLERANCE_SECONDS = 300; // reject events older than 5 minutes

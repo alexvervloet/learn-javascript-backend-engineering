@@ -18,8 +18,8 @@
 import { fileURLToPath } from "node:url";
 
 import express from "express";
-import { createHandler } from "graphql-http/lib/use/express";
 import type { GraphQLSchema } from "graphql";
+import { createHandler } from "graphql-http/lib/use/express";
 
 const app = express();
 

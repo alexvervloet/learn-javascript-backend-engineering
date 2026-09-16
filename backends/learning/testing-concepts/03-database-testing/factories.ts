@@ -5,8 +5,8 @@
  * defaults, overridable per call. Plain functions, no fixture injection magic.
  */
 
-import * as repository from "./repository.js";
 import type { DatabaseType, UserRow, PostRow } from "./db.js";
+import * as repository from "./repository.js";
 
 interface UserOverrides {
   username?: string;

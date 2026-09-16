@@ -17,10 +17,10 @@
  *   curl localhost:8000/orders ; curl localhost:8000/orders/999 ; curl localhost:8000/metrics
  */
 
-import { fileURLToPath } from "node:url";
-
 import { AsyncLocalStorage } from "node:async_hooks";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
 import express from "express";
 import pino from "pino";
 import client from "prom-client";

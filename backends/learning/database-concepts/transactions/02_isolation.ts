@@ -14,8 +14,9 @@
  * Run:  docker compose up -d (Postgres)  →  npx tsx 02_isolation.ts
  */
 
-import * as db from "./db.js";
 import { DatabaseError } from "pg";
+
+import * as db from "./db.js";
 
 // A caught value is `unknown`. pg throws DatabaseError for server-side
 // failures, and that is the class carrying the SQLSTATE code these demos print

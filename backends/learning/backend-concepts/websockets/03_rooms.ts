@@ -14,10 +14,10 @@
  *   ws://localhost:8000/ws/general?username=alice and .../ws/dev?username=carol
  */
 
-import { fileURLToPath } from "node:url";
-
 import http from "node:http";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 

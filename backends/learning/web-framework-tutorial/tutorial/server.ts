@@ -11,12 +11,12 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import express from "express";
+import Database from "better-sqlite3";
 import cookieParser from "cookie-parser";
+import express from "express";
+import type { ErrorRequestHandler, Request, RequestHandler } from "express";
 import multer from "multer";
 import { z } from "zod";
-import Database from "better-sqlite3";
-import type { ErrorRequestHandler, Request, RequestHandler } from "express";
 import type { ZodType, infer as ZodInfer } from "zod";
 
 // ESM has no __dirname. This is the equivalent, and it is what the SQLite

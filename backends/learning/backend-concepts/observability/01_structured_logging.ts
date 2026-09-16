@@ -18,10 +18,10 @@
  * Run:  npx tsx 01_structured_logging.ts
  */
 
-import { fileURLToPath } from "node:url";
-
 import { AsyncLocalStorage } from "node:async_hooks";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
 import pino from "pino";
 import type { Logger } from "pino";
 

@@ -18,10 +18,11 @@
  *     -d '{"item":"keyboard","quantity":2,"customer_id":"cust-42"}'
  */
 
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
-import crypto from "node:crypto";
 import express from "express";
+
 import { kafka } from "./kafka.js";
 
 const ORDERS_TOPIC = "order.placed";

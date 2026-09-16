@@ -22,8 +22,8 @@
 import { fileURLToPath } from "node:url";
 
 import express from "express";
-import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
 type Role = "admin" | "viewer";
 

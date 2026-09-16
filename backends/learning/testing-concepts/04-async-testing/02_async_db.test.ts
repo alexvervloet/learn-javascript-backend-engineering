@@ -16,8 +16,8 @@
 import { describe, test, expect, beforeEach, afterEach } from "@jest/globals";
 
 import { createAsyncDb } from "./async_db.js";
-import * as repository from "./async_repository.js";
 import type { UserRow } from "./async_db.js";
+import * as repository from "./async_repository.js";
 
 const db = createAsyncDb();
 

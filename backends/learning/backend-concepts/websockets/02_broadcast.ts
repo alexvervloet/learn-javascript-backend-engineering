@@ -14,10 +14,10 @@
  * Run:  npx tsx 02_broadcast.ts  →  open http://localhost:8000 in two tabs
  */
 
-import { fileURLToPath } from "node:url";
-
 import http from "node:http";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 

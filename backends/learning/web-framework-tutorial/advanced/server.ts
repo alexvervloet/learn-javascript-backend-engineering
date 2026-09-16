@@ -7,14 +7,14 @@
  * Run:  npx tsx advanced/server.ts   →  http://localhost:8001
  */
 
-import http from "node:http";
 import crypto from "node:crypto";
+import http from "node:http";
 import { fileURLToPath } from "node:url";
 
-import express from "express";
 import cookieParser from "cookie-parser";
-import { WebSocketServer } from "ws";
+import express from "express";
 import type { Request, RequestHandler } from "express";
+import { WebSocketServer } from "ws";
 
 // queryChecker() hangs its verdict on the request. Express does not know about
 // that, so the extra field is declared on a local interface rather than by

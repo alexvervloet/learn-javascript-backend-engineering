@@ -14,8 +14,9 @@
  * This spawns 10 concurrent holders against a pool of 3. Run: npx tsx 04_pool_exhaustion.ts
  */
 
-import * as db from "./db.js";
 import type { Pool } from "pg";
+
+import * as db from "./db.js";
 
 const HOLD_MS = 3000;
 const TIMEOUT_MS = 2000;

@@ -18,8 +18,8 @@
 import { fileURLToPath } from "node:url";
 
 import express from "express";
-import jwt from "jsonwebtoken";
 import type { Request, RequestHandler, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
 type Role = "viewer" | "editor" | "admin";
 

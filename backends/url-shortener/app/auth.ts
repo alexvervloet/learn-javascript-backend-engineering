@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { Request, RequestHandler } from "express";
 
+import type { AppRequest } from "./request.js";
+
 import prisma from "./database.js";
 import { getSettings } from "./config.js";
 import { HttpError, asyncHandler } from "./errors.js";
@@ -72,7 +74,7 @@ const getCurrentUser: RequestHandler = asyncHandler(async (req, _res, next) => {
 // req.user is optional on the Request type because most routes never run
 // getCurrentUser. This turns it back into a guarantee for the routes that do,
 // and fails loudly rather than silently if the middleware was left off.
-function currentUser(req: Request): User {
+function currentUser(req: AppRequest): User {
   const user = req.user;
   if (!user) {
     throw new HttpError(401, "Invalid or expired token", {

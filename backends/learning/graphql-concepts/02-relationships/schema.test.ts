@@ -7,8 +7,9 @@
 
 import { test, expect, beforeEach, afterEach } from "@jest/globals";
 import { graphqlSync } from "graphql";
-import { schema } from "./schema.js";
+
 import * as db from "./data.js";
+import { schema } from "./schema.js";
 
 // A GraphQL response is not statically typed without a codegen step: the query
 // is a string, so the compiler cannot know what shape comes back. These demos
