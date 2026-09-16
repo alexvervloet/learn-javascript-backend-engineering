@@ -1,4 +1,6 @@
-const { api, defaultUser, otherUser } = require("./setup");
+import { test, expect } from "@jest/globals";
+import { api, defaultUser, otherUser } from "./setup.js";
+import type { TagPublic } from "../app/schemas/serializers.js";
 
 test("create tag", async () => {
   const { headers } = await defaultUser();
@@ -21,7 +23,7 @@ test("tags isolated per user", async () => {
   await api().post("/tags/").set(otherHeaders).send({ name: "yours" });
 
   const res = await api().get("/tags/").set(headers);
-  expect(new Set(res.body.map((t) => t.name))).toEqual(new Set(["mine"]));
+  expect(new Set(res.body.map((t: TagPublic) => t.name))).toEqual(new Set(["mine"]));
 });
 
 test("list tags includes bookmark tags", async () => {
@@ -31,7 +33,7 @@ test("list tags includes bookmark tags", async () => {
     .set(headers)
     .send({ url: "https://example.com", tags: ["from-bookmark"] });
   const res = await api().get("/tags/").set(headers);
-  expect(res.body.map((t) => t.name)).toContain("from-bookmark");
+  expect(res.body.map((t: TagPublic) => t.name)).toContain("from-bookmark");
 });
 
 test("delete tag", async () => {

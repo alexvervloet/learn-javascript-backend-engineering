@@ -1,4 +1,5 @@
-const { api, defaultUser } = require("./setup");
+import { test, expect } from "@jest/globals";
+import { api, defaultUser } from "./setup.js";
 
 test("register user", async () => {
   const res = await api()

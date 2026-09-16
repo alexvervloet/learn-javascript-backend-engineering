@@ -1,4 +1,6 @@
-const { api, defaultUser, otherUser } = require("./setup");
+import { test, expect } from "@jest/globals";
+import { api, defaultUser, otherUser } from "./setup.js";
+import type { CategoryPublic } from "../app/schemas/serializers.js";
 
 test("create category", async () => {
   const { headers } = await defaultUser();
@@ -25,7 +27,7 @@ test("categories isolated per user", async () => {
   await api().post("/categories/").set(otherHeaders).send({ name: "Personal" });
 
   const res = await api().get("/categories/").set(headers);
-  expect(new Set(res.body.map((c) => c.name))).toEqual(new Set(["Work"]));
+  expect(new Set(res.body.map((c: CategoryPublic) => c.name))).toEqual(new Set(["Work"]));
 });
 
 test("update category", async () => {

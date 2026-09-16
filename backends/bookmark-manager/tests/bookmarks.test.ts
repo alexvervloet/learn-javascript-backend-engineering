@@ -1,5 +1,7 @@
-const { api, getRedis, defaultUser, otherUser } = require("./setup");
-const { flushBookmarkClicks } = require("../app/tasks");
+import { test, expect } from "@jest/globals";
+import { api, getRedis, defaultUser, otherUser } from "./setup.js";
+import { flushBookmarkClicks } from "../app/tasks.js";
+import type { TagPublic } from "../app/schemas/serializers.js";
 
 test("create bookmark minimal", async () => {
   const { headers } = await defaultUser();
@@ -26,7 +28,7 @@ test("create bookmark with tags", async () => {
   expect(res.status).toBe(201);
   expect(res.body.title).toBe("Foo Page");
   expect(res.body.favorite).toBe(true);
-  expect(new Set(res.body.tags.map((t) => t.name))).toEqual(new Set(["javascript", "tutorial"]));
+  expect(new Set(res.body.tags.map((t: TagPublic) => t.name))).toEqual(new Set(["javascript", "tutorial"]));
 });
 
 test("create bookmark invalid url", async () => {
@@ -94,7 +96,7 @@ test("update bookmark", async () => {
   expect(res.status).toBe(200);
   expect(res.body.title).toBe("Updated");
   expect(res.body.favorite).toBe(true);
-  expect(new Set(res.body.tags.map((t) => t.name))).toEqual(new Set(["new"]));
+  expect(new Set(res.body.tags.map((t: TagPublic) => t.name))).toEqual(new Set(["new"]));
 });
 
 test("delete bookmark", async () => {
