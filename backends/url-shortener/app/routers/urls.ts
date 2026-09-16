@@ -1,15 +1,16 @@
 // URL management routes
 
-const express = require("express");
+import express from "express";
 
-const prisma = require("../database");
-const cache = require("../cache");
-const { getCurrentUser } = require("../auth");
-const { getSettings } = require("../config");
-const { HttpError, asyncHandler } = require("../errors");
-const { validateBody } = require("../validate");
-const { urlCreate, urlResponse, urlStats } = require("../schemas");
-const { generateShortCode } = require("../shortener");
+import prisma from "../database.js";
+import * as cache from "../cache.js";
+import { getCurrentUser } from "../auth.js";
+import { getSettings } from "../config.js";
+import { HttpError, asyncHandler, isPrismaErrorWithCode } from "../errors.js";
+import { validateBody, validatedBody } from "../validate.js";
+import { urlCreate, urlResponse, urlStats } from "../schemas.js";
+import { generateShortCode } from "../shortener.js";
+import { pathParam, queryParam } from "../request.js";
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.post(
   getCurrentUser,
   validateBody(urlCreate),
   asyncHandler(async (req, res) => {
-    const input = req.validated;
+    const input = validatedBody(req, urlCreate);
     const baseUrl = getSettings().baseUrl;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
@@ -35,7 +36,7 @@ router.post(
         });
         return res.status(201).json(urlResponse(url, baseUrl));
       } catch (err) {
-        if (err.code !== "P2002") throw err;
+        if (!isPrismaErrorWithCode(err, "P2002")) throw err;
         // short_code collision — retry with a fresh code unless it was custom.
         if (input.custom_code) {
           throw new HttpError(409, "Custom code already taken");
@@ -49,8 +50,11 @@ router.post(
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const page = Math.max(Number.parseInt(req.query.page ?? "1", 10), 1);
-    const pageSize = Math.min(Math.max(Number.parseInt(req.query.page_size ?? "20", 10), 1), 100);
+    const page = Math.max(Number.parseInt(queryParam(req, "page", "1"), 10), 1);
+    const pageSize = Math.min(
+      Math.max(Number.parseInt(queryParam(req, "page_size", "20"), 10), 1),
+      100
+    );
     const offset = (page - 1) * pageSize;
     const baseUrl = getSettings().baseUrl;
 
@@ -75,7 +79,9 @@ router.get(
 router.get(
   "/:shortCode/stats",
   asyncHandler(async (req, res) => {
-    const url = await prisma.url.findUnique({ where: { shortCode: req.params.shortCode } });
+    const url = await prisma.url.findUnique({
+      where: { shortCode: pathParam(req, "shortCode") },
+    });
     if (!url) throw new HttpError(404, "Short URL not found");
     res.json(urlStats(url));
   })
@@ -85,12 +91,13 @@ router.delete(
   "/:shortCode",
   getCurrentUser,
   asyncHandler(async (req, res) => {
-    const url = await prisma.url.findUnique({ where: { shortCode: req.params.shortCode } });
+    const shortCode = pathParam(req, "shortCode");
+    const url = await prisma.url.findUnique({ where: { shortCode } });
     if (!url) throw new HttpError(404, "Short URL not found");
     await prisma.url.update({ where: { id: url.id }, data: { isActive: false } });
-    await cache.invalidate(req.params.shortCode);
+    await cache.invalidate(shortCode);
     res.status(204).end();
   })
 );
 
-module.exports = router;
+export default router;

@@ -1,20 +1,20 @@
 // Express application factory. The redirect router is mounted last because its
 // `/:shortCode` route would otherwise shadow /urls, /auth, and /health.
 
-const express = require("express");
+import express from "express";
 
-const cache = require("./cache");
-const { errorHandler } = require("./errors");
-const authRouter = require("./routers/auth");
-const urlsRouter = require("./routers/urls");
-const redirectRouter = require("./routers/redirect");
+import * as cache from "./cache.js";
+import { errorHandler } from "./errors.js";
+import authRouter from "./routers/auth.js";
+import urlsRouter from "./routers/urls.js";
+import redirectRouter from "./routers/redirect.js";
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.get("/health", async (req, res) => {
+app.get("/health", async (_req, res) => {
   res.json({ status: "ok", cache: await cache.stats() });
 });
 
@@ -24,4 +24,4 @@ app.use("/", redirectRouter);
 
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

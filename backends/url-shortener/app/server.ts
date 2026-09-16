@@ -2,26 +2,26 @@
 // (`cache.init()`) then listens. Schema is managed by Prisma Migrate: run
 // `npx prisma migrate deploy` before starting.
 
-const app = require("./main");
-const cache = require("./cache");
-const prisma = require("./database");
+import app from "./main.js";
+import * as cache from "./cache.js";
+import prisma from "./database.js";
 
 const PORT = Number(process.env.PORT || 8000);
 
-async function main() {
+async function main(): Promise<void> {
   await cache.init();
   const server = app.listen(PORT, () => {
     console.log(`URL shortener API listening on port ${PORT}`);
   });
 
-  const shutdown = async () => {
+  const shutdown = async (): Promise<void> => {
     server.close();
     await cache.close();
     await prisma.$disconnect();
     process.exit(0);
   };
-  process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", () => void shutdown());
+  process.on("SIGINT", () => void shutdown());
 }
 
-main();
+void main();

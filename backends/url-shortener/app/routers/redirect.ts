@@ -1,18 +1,19 @@
 // Slug → redirect with click tracking
 
-const express = require("express");
+import express from "express";
 
-const prisma = require("../database");
-const cache = require("../cache");
-const { asyncHandler, HttpError } = require("../errors");
-const { incrementClick } = require("../tasks");
+import prisma from "../database.js";
+import * as cache from "../cache.js";
+import { asyncHandler, HttpError } from "../errors.js";
+import { incrementClick } from "../tasks.js";
+import { pathParam } from "../request.js";
 
 const router = express.Router();
 
 router.get(
   "/:shortCode",
   asyncHandler(async (req, res) => {
-    const { shortCode } = req.params;
+    const shortCode = pathParam(req, "shortCode");
 
     // Hot path: Redis cache hit — no DB query, click counted async via the queue.
     const cachedUrl = await cache.get(shortCode);
@@ -37,4 +38,4 @@ router.get(
   })
 );
 
-module.exports = router;
+export default router;

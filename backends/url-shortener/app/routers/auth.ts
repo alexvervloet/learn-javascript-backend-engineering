@@ -1,21 +1,22 @@
 // Auth routes
 
-const express = require("express");
+import express from "express";
 
-const prisma = require("../database");
-const {
+import prisma from "../database.js";
+import {
   createAccessToken,
+  currentUser,
   getCurrentUser,
   hashPassword,
   verifyPassword,
-} = require("../auth");
-const { HttpError, asyncHandler } = require("../errors");
-const { validateBody } = require("../validate");
-const {
+} from "../auth.js";
+import { HttpError, asyncHandler, isPrismaErrorWithCode } from "../errors.js";
+import { validateBody, validatedBody } from "../validate.js";
+import {
   registerRequest,
   tokenResponse,
   userResponse,
-} = require("../schemas");
+} from "../schemas.js";
 
 const router = express.Router();
 
@@ -23,13 +24,13 @@ router.post(
   "/register",
   validateBody(registerRequest),
   asyncHandler(async (req, res) => {
-    const { username, password } = req.validated;
+    const { username, password } = validatedBody(req, registerRequest);
     try {
       await prisma.user.create({
         data: { username, hashedPassword: hashPassword(password) },
       });
     } catch (err) {
-      if (err.code === "P2002") {
+      if (isPrismaErrorWithCode(err, "P2002")) {
         throw new HttpError(409, "Username already taken");
       }
       throw err;
@@ -42,7 +43,15 @@ router.post(
 router.post(
   "/token",
   asyncHandler(async (req, res) => {
-    const { username, password } = req.body || {};
+    // This route deliberately skips validateBody, so the body is whatever the
+    // client sent. Reading it as unknown fields keeps that honest.
+    const body: unknown = req.body ?? {};
+    const { username, password } = body as { username?: string; password?: string };
+    if (!username) {
+      throw new HttpError(401, "Incorrect username or password", {
+        "WWW-Authenticate": "Bearer",
+      });
+    }
     const user = await prisma.user.findFirst({
       where: { username, isActive: true },
     });
@@ -59,8 +68,8 @@ router.get(
   "/me",
   getCurrentUser,
   asyncHandler(async (req, res) => {
-    res.json(userResponse(req.user));
+    res.json(userResponse(currentUser(req)));
   })
 );
 
-module.exports = router;
+export default router;
