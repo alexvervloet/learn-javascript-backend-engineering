@@ -2,9 +2,10 @@
 // skipFailedRequests so that requests rejected before the handler (e.g. failed
 // validation) don't consume a slot.
 
-const rateLimit = require("express-rate-limit");
+import rateLimit from "express-rate-limit";
+import type { RateLimitRequestHandler } from "express-rate-limit";
 
-function limit(maxPerMinute) {
+function limit(maxPerMinute: number): RateLimitRequestHandler {
   return rateLimit({
     windowMs: 60 * 1000,
     max: maxPerMinute,
@@ -15,4 +16,4 @@ function limit(maxPerMinute) {
   });
 }
 
-module.exports = { limit };
+export { limit };

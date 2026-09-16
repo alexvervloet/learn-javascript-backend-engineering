@@ -3,13 +3,13 @@
 // A module-level singleton with getRedis() / setRedis() lets tests swap in
 // ioredis-mock without monkey-patching every import site.
 
-const Redis = require("ioredis");
+import { Redis } from "ioredis";
 
-const { getSettings } = require("./config");
+import { getSettings } from "./config.js";
 
-let client = null;
+let client: Redis | null = null;
 
-function getRedis() {
+function getRedis(): Redis {
   if (client === null) {
     const settings = getSettings();
     client = new Redis(settings.redisUrl);
@@ -18,8 +18,8 @@ function getRedis() {
 }
 
 // For testing: inject a fake Redis client.
-function setRedis(injected) {
+function setRedis(injected: Redis): void {
   client = injected;
 }
 
-module.exports = { getRedis, setRedis };
+export { getRedis, setRedis };

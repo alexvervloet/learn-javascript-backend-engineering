@@ -1,7 +1,7 @@
 // Zod schemas for users. Input keys stay snake_case to match the JSON the API
 // accepts.
 
-const { z } = require("zod");
+import { z } from "zod";
 
 const userCreate = z.object({
   email: z.string().email(),
@@ -13,4 +13,7 @@ const userCreate = z.object({
   password: z.string().min(8).max(72),
 });
 
-module.exports = { userCreate };
+type UserCreate = z.infer<typeof userCreate>;
+
+export { userCreate };
+export type { UserCreate };

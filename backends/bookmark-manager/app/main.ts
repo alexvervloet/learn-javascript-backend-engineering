@@ -1,16 +1,16 @@
 // Express application factory. Builds and exports the configured app (CORS, body
 // parsing, routers, health, error handling). The network listen happens in
-// server.js, keeping the app importable for tests.
+// server.ts, keeping the app importable for tests.
 
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
 
-const { getSettings } = require("./config");
-const { errorHandler } = require("./exceptions");
-const authRouter = require("./routers/auth");
-const bookmarksRouter = require("./routers/bookmarks");
-const categoriesRouter = require("./routers/categories");
-const tagsRouter = require("./routers/tags");
+import { getSettings } from "./config.js";
+import { errorHandler } from "./exceptions.js";
+import authRouter from "./routers/auth.js";
+import bookmarksRouter from "./routers/bookmarks.js";
+import categoriesRouter from "./routers/categories.js";
+import tagsRouter from "./routers/tags.js";
 
 const settings = getSettings();
 
@@ -38,10 +38,10 @@ app.use("/bookmarks", bookmarksRouter);
 app.use("/tags", tagsRouter);
 app.use("/categories", categoriesRouter);
 
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ status: "ok", environment: settings.environment });
 });
 
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

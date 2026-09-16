@@ -1,31 +1,39 @@
 // Bookmark routes
 
-const express = require("express");
+import express from "express";
 
-const prisma = require("../database");
-const { getCurrentUser } = require("../dependencies");
-const { HttpError, asyncHandler } = require("../exceptions");
-const { limit } = require("../rate_limit");
-const { getRedis } = require("../redis_client");
-const { makeLogger } = require("../logging_config");
-const { validateBody } = require("../validate");
-const { bookmarkCreate, bookmarkUpdate } = require("../schemas/bookmark");
-const { bookmarkPublic } = require("../schemas/serializers");
-const { fetchBookmarkMetadata, CLICK_KEY_PREFIX } = require("../tasks");
+import prisma from "../database.js";
+import { getCurrentUser, currentUser } from "../dependencies.js";
+import { HttpError, asyncHandler } from "../exceptions.js";
+import { limit } from "../rate_limit.js";
+import { getRedis } from "../redis_client.js";
+import { makeLogger } from "../logging_config.js";
+import { validateBody, validatedBody } from "../validate.js";
+import { pathParamInt, queryParam } from "../request.js";
+import { bookmarkCreate, bookmarkUpdate } from "../schemas/bookmark.js";
+import { bookmarkPublic } from "../schemas/serializers.js";
+import { fetchBookmarkMetadata, CLICK_KEY_PREFIX } from "../tasks.js";
+import type { Prisma } from "../generated/prisma/index.js";
 
 const router = express.Router();
 const logger = makeLogger("app.routers.bookmarks");
 
 // Get-or-create each tag via Prisma's connectOrCreate using the
 // (name, user_id) composite unique constraint.
-function tagConnectOrCreate(userId, names) {
+function tagConnectOrCreate(
+  userId: number,
+  names: string[]
+): Prisma.TagCreateOrConnectWithoutBookmarksInput[] {
   return names.map((name) => ({
     where: { uq_tag_name_user: { name, userId } },
     create: { name, userId },
   }));
 }
 
-async function validateCategory(userId, categoryId) {
+async function validateCategory(
+  userId: number,
+  categoryId: number | null | undefined
+): Promise<void> {
   if (categoryId === null || categoryId === undefined) return;
   const category = await prisma.category.findUnique({ where: { id: categoryId } });
   if (!category || category.userId !== userId) {
@@ -39,8 +47,8 @@ router.post(
   limit(30),
   validateBody(bookmarkCreate),
   asyncHandler(async (req, res) => {
-    const user = req.user;
-    const input = req.validated;
+    const user = currentUser(req);
+    const input = validatedBody(req, bookmarkCreate);
     await validateCategory(user.id, input.category_id);
 
     const url = input.url;
@@ -70,19 +78,27 @@ router.get(
   "/",
   getCurrentUser,
   asyncHandler(async (req, res) => {
-    const user = req.user;
-    const where = { userId: user.id };
-    if (req.query.category_id !== undefined) {
-      where.categoryId = Number.parseInt(req.query.category_id, 10);
+    const user = currentUser(req);
+    // Typing the filter as Prisma's own where-input means a mistyped field name
+    // fails to compile rather than silently widening the result set.
+    const where: Prisma.BookmarkWhereInput = { userId: user.id };
+    const categoryId = queryParam(req, "category_id");
+    if (categoryId !== undefined) {
+      where.categoryId = Number.parseInt(categoryId, 10);
     }
-    if (req.query.favorite !== undefined) {
-      where.favorite = req.query.favorite === "true";
+    const favorite = queryParam(req, "favorite");
+    if (favorite !== undefined) {
+      where.favorite = favorite === "true";
     }
-    if (req.query.tag !== undefined) {
-      where.tags = { some: { name: req.query.tag } };
+    const tag = queryParam(req, "tag");
+    if (tag !== undefined) {
+      where.tags = { some: { name: tag } };
     }
-    const offset = Number.parseInt(req.query.offset ?? "0", 10);
-    const limitParam = Math.min(Number.parseInt(req.query.limit ?? "50", 10), 100);
+    const offset = Number.parseInt(queryParam(req, "offset") ?? "0", 10);
+    const limitParam = Math.min(
+      Number.parseInt(queryParam(req, "limit") ?? "50", 10),
+      100
+    );
 
     const bookmarks = await prisma.bookmark.findMany({
       where,
@@ -100,10 +116,10 @@ router.get(
   getCurrentUser,
   asyncHandler(async (req, res) => {
     const bookmark = await prisma.bookmark.findUnique({
-      where: { id: Number.parseInt(req.params.bookmarkId, 10) },
+      where: { id: pathParamInt(req, "bookmarkId") },
       include: { tags: true },
     });
-    if (!bookmark || bookmark.userId !== req.user.id) {
+    if (!bookmark || bookmark.userId !== currentUser(req).id) {
       throw new HttpError(404, "Bookmark not found");
     }
     res.json(bookmarkPublic(bookmark));
@@ -115,23 +131,28 @@ router.patch(
   getCurrentUser,
   validateBody(bookmarkUpdate),
   asyncHandler(async (req, res) => {
-    const user = req.user;
-    const id = Number.parseInt(req.params.bookmarkId, 10);
+    const user = currentUser(req);
+    const id = pathParamInt(req, "bookmarkId");
     const existing = await prisma.bookmark.findUnique({ where: { id } });
     if (!existing || existing.userId !== user.id) {
       throw new HttpError(404, "Bookmark not found");
     }
 
-    const input = req.validated;
-    const data = {};
+    const input = validatedBody(req, bookmarkUpdate);
+    const data: Prisma.BookmarkUpdateInput = {};
     // Apply only fields the client actually sent (exclude_unset semantics).
     if (input.url !== undefined) data.url = input.url;
-    if (input.title !== undefined) data.title = input.title;
+    if (input.title !== undefined) data.title = input.title ?? existing.url;
     if (input.description !== undefined) data.description = input.description;
     if (input.favorite !== undefined) data.favorite = input.favorite;
     if (input.category_id !== undefined) {
       await validateCategory(user.id, input.category_id);
-      data.categoryId = input.category_id;
+      // categoryId is a relation field, so the update goes through connect or
+      // disconnect rather than assigning the raw foreign key.
+      data.category =
+        input.category_id === null
+          ? { disconnect: true }
+          : { connect: { id: input.category_id } };
     }
     data.updatedAt = new Date();
 
@@ -153,8 +174,8 @@ router.delete(
   "/:bookmarkId",
   getCurrentUser,
   asyncHandler(async (req, res) => {
-    const user = req.user;
-    const id = Number.parseInt(req.params.bookmarkId, 10);
+    const user = currentUser(req);
+    const id = pathParamInt(req, "bookmarkId");
     const bookmark = await prisma.bookmark.findUnique({ where: { id } });
     if (!bookmark || bookmark.userId !== user.id) {
       throw new HttpError(404, "Bookmark not found");
@@ -171,9 +192,9 @@ router.post(
   "/:bookmarkId/click",
   getCurrentUser,
   asyncHandler(async (req, res) => {
-    const id = Number.parseInt(req.params.bookmarkId, 10);
+    const id = pathParamInt(req, "bookmarkId");
     const bookmark = await prisma.bookmark.findUnique({ where: { id } });
-    if (!bookmark || bookmark.userId !== req.user.id) {
+    if (!bookmark || bookmark.userId !== currentUser(req).id) {
       throw new HttpError(404, "Bookmark not found");
     }
     await getRedis().incr(`${CLICK_KEY_PREFIX}${id}`);
@@ -181,4 +202,4 @@ router.post(
   })
 );
 
-module.exports = router;
+export default router;

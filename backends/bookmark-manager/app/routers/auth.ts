@@ -1,21 +1,27 @@
 // Auth routes
 
-const express = require("express");
+import express from "express";
 
-const prisma = require("../database");
-const { getCurrentToken, getCurrentUser, blocklistKey } = require("../dependencies");
-const { HttpError, asyncHandler } = require("../exceptions");
-const { limit } = require("../rate_limit");
-const { getRedis } = require("../redis_client");
-const { makeLogger } = require("../logging_config");
-const { validateBody } = require("../validate");
-const { userCreate } = require("../schemas/user");
-const { userPublic, tokenResponse } = require("../schemas/serializers");
-const {
+import prisma from "../database.js";
+import {
+  getCurrentToken,
+  getCurrentUser,
+  currentToken,
+  currentUser,
+  blocklistKey,
+} from "../dependencies.js";
+import { HttpError, asyncHandler } from "../exceptions.js";
+import { limit } from "../rate_limit.js";
+import { getRedis } from "../redis_client.js";
+import { makeLogger } from "../logging_config.js";
+import { validateBody, validatedBody } from "../validate.js";
+import { userCreate } from "../schemas/user.js";
+import { userPublic, tokenResponse } from "../schemas/serializers.js";
+import {
   createAccessToken,
   hashPassword,
   verifyPassword,
-} = require("../security");
+} from "../security.js";
 
 const router = express.Router();
 const logger = makeLogger("app.routers.auth");
@@ -25,7 +31,7 @@ router.post(
   limit(5),
   validateBody(userCreate),
   asyncHandler(async (req, res) => {
-    const { email, username, password } = req.validated;
+    const { email, username, password } = validatedBody(req, userCreate);
 
     const existing = await prisma.user.findFirst({
       where: { OR: [{ email }, { username }] },
@@ -47,13 +53,21 @@ router.post(
   "/token",
   limit(10),
   asyncHandler(async (req, res) => {
-    const { username, password } = req.body || {};
+    // This route deliberately skips validateBody, so the body is whatever the
+    // client sent. Reading it as optional fields keeps that honest.
+    const body: unknown = req.body ?? {};
+    const { username, password } = body as { username?: string; password?: string };
+    const credentialsError = new HttpError(401, "Incorrect username or password", {
+      "WWW-Authenticate": "Bearer",
+    });
+    if (!username) {
+      logger.warning("Failed login attempt with no username");
+      throw credentialsError;
+    }
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user || !verifyPassword(password || "", user.passwordHash)) {
       logger.warning(`Failed login attempt for username: ${username}`);
-      throw new HttpError(401, "Incorrect username or password", {
-        "WWW-Authenticate": "Bearer",
-      });
+      throw credentialsError;
     }
     if (!user.isActive) {
       throw new HttpError(400, "Inactive user");
@@ -70,7 +84,7 @@ router.post(
   "/logout",
   getCurrentToken,
   asyncHandler(async (req, res) => {
-    const payload = req.tokenPayload;
+    const payload = currentToken(req);
     const remaining = Math.floor((payload.exp.getTime() - Date.now()) / 1000);
     if (remaining > 0) {
       await getRedis().setex(blocklistKey(payload.jti), remaining, "1");
@@ -84,8 +98,8 @@ router.get(
   "/me",
   getCurrentUser,
   asyncHandler(async (req, res) => {
-    res.json(userPublic(req.user));
+    res.json(userPublic(currentUser(req)));
   })
 );
 
-module.exports = router;
+export default router;

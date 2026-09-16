@@ -1,6 +1,6 @@
 // Zod schemas for bookmarks
 
-const { z } = require("zod");
+import { z } from "zod";
 
 const httpUrl = z
   .string()
@@ -27,4 +27,10 @@ const bookmarkUpdate = z.object({
   tags: z.array(z.string()).max(20).nullish(),
 });
 
-module.exports = { bookmarkCreate, bookmarkUpdate };
+// z.infer keeps the schema as the single source of truth: change a field and
+// every handler that reads it stops compiling until it is updated.
+type BookmarkCreate = z.infer<typeof bookmarkCreate>;
+type BookmarkUpdate = z.infer<typeof bookmarkUpdate>;
+
+export { bookmarkCreate, bookmarkUpdate };
+export type { BookmarkCreate, BookmarkUpdate };

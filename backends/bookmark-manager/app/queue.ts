@@ -3,14 +3,22 @@
 // module (e.g. in tests, which stub the enqueue side) never opens a Redis
 // connection.
 
-const { Queue } = require("bullmq");
+import { Queue } from "bullmq";
+import type { ConnectionOptions } from "bullmq";
 
-const { getSettings } = require("./config");
+import { getSettings } from "./config.js";
 
 const METADATA_QUEUE = "bookmark_metadata";
 const CLICK_FLUSH_QUEUE = "bookmark_click_flush";
 
-function redisConnection() {
+// The payload a metadata job carries. Naming it keeps the enqueue side and the
+// worker from drifting apart without a compile error.
+interface MetadataJobData {
+  bookmarkId: number;
+  url: string;
+}
+
+function redisConnection(): ConnectionOptions {
   const url = new URL(getSettings().brokerUrl);
   return {
     host: url.hostname,
@@ -19,18 +27,21 @@ function redisConnection() {
   };
 }
 
-let metadataQueue = null;
+let metadataQueue: Queue<MetadataJobData> | null = null;
 
-function getMetadataQueue() {
+function getMetadataQueue(): Queue<MetadataJobData> {
   if (metadataQueue === null) {
-    metadataQueue = new Queue(METADATA_QUEUE, { connection: redisConnection() });
+    metadataQueue = new Queue<MetadataJobData>(METADATA_QUEUE, {
+      connection: redisConnection(),
+    });
   }
   return metadataQueue;
 }
 
-module.exports = {
+export {
   METADATA_QUEUE,
   CLICK_FLUSH_QUEUE,
   redisConnection,
   getMetadataQueue,
 };
+export type { MetadataJobData };

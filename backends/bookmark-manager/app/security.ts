@@ -1,20 +1,27 @@
 // Password hashing and JWT helpers.
 
-const crypto = require("crypto");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-const { getSettings } = require("./config");
+import { getSettings } from "./config.js";
 
-function hashPassword(password) {
+// What decodeAccessToken hands back once it has checked the claims it needs.
+interface TokenPayload {
+  sub: string;
+  jti: string;
+  exp: Date;
+}
+
+function hashPassword(password: string): string {
   return bcrypt.hashSync(password, bcrypt.genSaltSync());
 }
 
-function verifyPassword(plain, hashed) {
+function verifyPassword(plain: string, hashed: string): boolean {
   return bcrypt.compareSync(plain, hashed);
 }
 
-function createAccessToken(subject, expiresMinutes = null) {
+function createAccessToken(subject: string, expiresMinutes: number | null = null): string {
   const settings = getSettings();
   const minutes = expiresMinutes || settings.accessTokenExpireMinutes;
   return jwt.sign(
@@ -26,12 +33,16 @@ function createAccessToken(subject, expiresMinutes = null) {
 
 // Returns { sub, jti, exp } on success or null on any failure (invalid
 // signature, expired, malformed).
-function decodeAccessToken(token) {
+function decodeAccessToken(token: string): TokenPayload | null {
   const settings = getSettings();
   try {
     const payload = jwt.verify(token, settings.secretKey, {
       algorithms: [settings.algorithm],
     });
+    // jwt.verify can hand back a bare string payload, which carries no claims.
+    if (typeof payload === "string") {
+      return null;
+    }
     if (!payload.sub || !payload.jti || !payload.exp) {
       return null;
     }
@@ -45,9 +56,10 @@ function decodeAccessToken(token) {
   }
 }
 
-module.exports = {
+export {
   hashPassword,
   verifyPassword,
   createAccessToken,
   decodeAccessToken,
 };
+export type { TokenPayload };

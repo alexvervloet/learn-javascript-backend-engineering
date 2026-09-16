@@ -1,6 +1,6 @@
 // Zod schemas for categories
 
-const { z } = require("zod");
+import { z } from "zod";
 
 const categoryCreate = z.object({
   name: z.string().min(1).max(100),
@@ -12,4 +12,8 @@ const categoryUpdate = z.object({
   description: z.string().max(500).nullish(),
 });
 
-module.exports = { categoryCreate, categoryUpdate };
+type CategoryCreate = z.infer<typeof categoryCreate>;
+type CategoryUpdate = z.infer<typeof categoryUpdate>;
+
+export { categoryCreate, categoryUpdate };
+export type { CategoryCreate, CategoryUpdate };

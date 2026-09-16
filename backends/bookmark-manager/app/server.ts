@@ -1,8 +1,8 @@
 // Network entry point — imports the app factory and starts listening.
 // Schema is managed by Prisma Migrate: `npx prisma migrate deploy` before start.
 
-const app = require("./main");
-const { makeLogger } = require("./logging_config");
+import app from "./main.js";
+import { makeLogger } from "./logging_config.js";
 
 const logger = makeLogger("app.server");
 const PORT = Number(process.env.PORT || 8000);
