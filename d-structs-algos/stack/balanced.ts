@@ -1,7 +1,7 @@
-const { Stack } = require("./stack");
+import { Stack } from "./stack.js";
 
-function isBalanced(inputStr) {
-  const stack = new Stack();
+function isBalanced(inputStr: string): boolean {
+  const stack = new Stack<string>();
   for (const char of inputStr) {
     if (char === "(") {
       stack.push(char);
@@ -14,4 +14,4 @@ function isBalanced(inputStr) {
   return stack.peek() === null;
 }
 
-module.exports = { isBalanced };
+export { isBalanced };

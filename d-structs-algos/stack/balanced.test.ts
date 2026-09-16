@@ -1,6 +1,7 @@
-const { isBalanced } = require("./balanced");
+import { test, expect } from "@jest/globals";
+import { isBalanced } from "./balanced.js";
 
-const cases = [
+const cases: [string, boolean][] = [
   ["(", false],
   ["()", true],
   ["(())", true],

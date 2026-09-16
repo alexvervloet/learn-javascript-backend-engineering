@@ -1,6 +1,9 @@
-const { Stack } = require("./stack");
+import { test, expect } from "@jest/globals";
+import { Stack } from "./stack.js";
 
-const cases = [
+// Annotating the tuple shape keeps test.each's callback parameters typed as
+// (string[], number) instead of collapsing to a union of both.
+const cases: [string[], number][] = [
   [["a", "b", "c"], 3],
   [["x"], 1],
   [[], 0],
@@ -8,7 +11,7 @@ const cases = [
 ];
 
 test.each(cases)("size after pushing %p", (items, expectedSize) => {
-  const s = new Stack();
+  const s = new Stack<string>();
   for (const item of items) {
     s.push(item);
   }
@@ -16,7 +19,7 @@ test.each(cases)("size after pushing %p", (items, expectedSize) => {
 });
 
 test("peek and pop behave as a LIFO stack", () => {
-  const s = new Stack();
+  const s = new Stack<string>();
   expect(s.peek()).toBeNull();
   expect(s.pop()).toBeNull();
   s.push("a");
