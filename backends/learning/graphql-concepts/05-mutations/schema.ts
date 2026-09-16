@@ -13,8 +13,9 @@
  * `__resolveType` can pick the concrete type.
  */
 
-const { makeExecutableSchema } = require("@graphql-tools/schema");
-const { state } = require("./data");
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import { state } from "./data.js";
+import type { TodoItem } from "./data.js";
 
 const typeDefs = /* GraphQL */ `
   type TodoItem {
@@ -74,31 +75,90 @@ const typeDefs = /* GraphQL */ `
   }
 `;
 
-const ok = (todo) => ({ ...todo, __typename: "TodoItem" });
-const success = (typename, todo) => ({ __typename: typename, todo });
-const validationError = (field, message) => ({ __typename: "ValidationError", field, message });
-const notFound = (id) => ({ __typename: "TodoNotFound", id, message: "Todo item not found" });
+// Pattern B returns a union, and each member is tagged with __typename so the
+// __resolveType functions below can discriminate. Naming the members means a
+// resolver cannot return a shape the union does not cover.
+interface SuccessPayload {
+  __typename: string;
+  todo: TodoItem;
+}
+
+interface ValidationErrorPayload {
+  __typename: "ValidationError";
+  field: string;
+  message: string;
+}
+
+interface NotFoundPayload {
+  __typename: "TodoNotFound";
+  id: string;
+  message: string;
+}
+
+// DeleteTodoResult in the SDL is TodoItem | TodoNotFound, so a deleted item
+// comes back flattened with __typename on it rather than wrapped in a
+// success payload. That fourth shape belongs in the union too.
+type DeletedPayload = TodoItem & { __typename: string };
+
+type MutationResult =
+  | SuccessPayload
+  | ValidationErrorPayload
+  | NotFoundPayload
+  | DeletedPayload;
+
+const ok = (todo: TodoItem): DeletedPayload => ({ ...todo, __typename: "TodoItem" });
+const success = (typename: string, todo: TodoItem): SuccessPayload => ({
+  __typename: typename,
+  todo,
+});
+const validationError = (field: string, message: string): ValidationErrorPayload => ({
+  __typename: "ValidationError",
+  field,
+  message,
+});
+const notFound = (id: string): NotFoundPayload => ({
+  __typename: "TodoNotFound",
+  id,
+  message: "Todo item not found",
+});
+
+interface CreateTodoInput {
+  title: string;
+  priority?: number | null;
+}
+
+interface UpdateTodoInput {
+  title?: string | null;
+  done?: boolean | null;
+  priority?: number | null;
+}
 
 const resolvers = {
   // Discriminate each union by the __typename we tag onto returned objects.
-  CreateTodoResult: { __resolveType: (o) => o.__typename },
-  UpdateTodoResult: { __resolveType: (o) => o.__typename },
-  DeleteTodoResult: { __resolveType: (o) => o.__typename },
+  CreateTodoResult: { __resolveType: (o: MutationResult): string => o.__typename },
+  UpdateTodoResult: { __resolveType: (o: MutationResult): string => o.__typename },
+  DeleteTodoResult: { __resolveType: (o: MutationResult): string => o.__typename },
 
   Query: {
     todos: () => state.items,
-    todo: (_p, { id }) => state.items.find((t) => t.id === id) ?? null,
+    todo: (_p: unknown, { id }: { id: string }): TodoItem | null =>
+      state.items.find((t) => t.id === id) ?? null,
   },
 
   Mutation: {
     // ── Pattern A ─────────────────────────────────────────────────────────
-    createTodoSimple: (_p, { input }) => {
-      const row = { id: String(state.nextId), title: input.title, done: false, priority: input.priority ?? 1 };
+    createTodoSimple: (_p: unknown, { input }: { input: CreateTodoInput }): TodoItem => {
+      const row: TodoItem = {
+        id: String(state.nextId),
+        title: input.title,
+        done: false,
+        priority: input.priority ?? 1,
+      };
       state.items.push(row);
       state.nextId += 1;
       return row;
     },
-    toggleDoneSimple: (_p, { id }) => {
+    toggleDoneSimple: (_p: unknown, { id }: { id: string }): TodoItem | null => {
       const item = state.items.find((t) => t.id === id);
       if (!item) return null; // client must check for null
       item.done = !item.done;
@@ -106,18 +166,26 @@ const resolvers = {
     },
 
     // ── Pattern B ─────────────────────────────────────────────────────────
-    createTodo: (_p, { input }) => {
+    createTodo: (_p: unknown, { input }: { input: CreateTodoInput }): MutationResult => {
       if (!input.title.trim()) return validationError("title", "Title cannot be empty");
       if (input.priority != null && !(input.priority >= 1 && input.priority <= 5)) {
         return validationError("priority", "Priority must be 1–5");
       }
-      const row = { id: String(state.nextId), title: input.title.trim(), done: false, priority: input.priority ?? 1 };
+      const row: TodoItem = {
+        id: String(state.nextId),
+        title: input.title.trim(),
+        done: false,
+        priority: input.priority ?? 1,
+      };
       state.items.push(row);
       state.nextId += 1;
       return success("CreateTodoSuccess", row);
     },
 
-    updateTodo: (_p, { id, input }) => {
+    updateTodo: (
+      _p: unknown,
+      { id, input }: { id: string; input: UpdateTodoInput }
+    ): MutationResult => {
       const row = state.items.find((t) => t.id === id);
       if (!row) return notFound(id);
 
@@ -135,10 +203,13 @@ const resolvers = {
       return success("UpdateTodoSuccess", row);
     },
 
-    deleteTodo: (_p, { id }) => {
+    deleteTodo: (_p: unknown, { id }: { id: string }): MutationResult => {
       const i = state.items.findIndex((t) => t.id === id);
       if (i === -1) return notFound(id);
+      // splice returns an array; the findIndex above guarantees one element,
+      // but the type does not say so.
       const [row] = state.items.splice(i, 1);
+      if (!row) return notFound(id);
       return ok(row);
     },
   },
@@ -146,4 +217,4 @@ const resolvers = {
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-module.exports = { schema };
+export { schema };

@@ -11,9 +11,17 @@
  * single batch query for all of them. 6 lookups → 1 batch call.
  */
 
-const { makeExecutableSchema } = require("@graphql-tools/schema");
-const db = require("./data");
-const { makeAuthorLoader } = require("./loaders");
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import * as db from "./data.js";
+import type { Author, Post } from "./data.js";
+import type DataLoader from "dataloader";
+
+// What makeContext() puts on every request. Naming it is what makes
+// context.authorLoader.load() checkable inside the resolver.
+interface GraphQLContext {
+  authorLoader: DataLoader<string, Author | null>;
+}
+import { makeAuthorLoader } from "./loaders.js";
 
 const typeDefs = /* GraphQL */ `
   type Author {
@@ -38,12 +46,17 @@ const typeDefs = /* GraphQL */ `
 const resolvers = {
   Query: {
     posts: () => db.posts,
-    post: (_p, { id }) => db.posts.find((p) => p.id === id) ?? null,
+    post: (_p: unknown, { id }: { id: string }): Post | null =>
+      db.posts.find((p) => p.id === id) ?? null,
   },
   Post: {
     // load() schedules a key for batching; all load() calls in one tick batch
     // together, and identical keys are de-duplicated by the loader's cache.
-    author: (post, _args, context) => context.authorLoader.load(post.authorId),
+    author: (
+      post: Post,
+      _args: unknown,
+      context: GraphQLContext
+    ): Promise<Author | null> => context.authorLoader.load(post.authorId),
   },
 };
 
@@ -54,4 +67,4 @@ function makeContext() {
   return { authorLoader: makeAuthorLoader() };
 }
 
-module.exports = { schema, makeContext };
+export { schema, makeContext };

@@ -42,4 +42,4 @@ const MUTATION_PAYLOAD_PATTERN = {
   client: "inline fragments: ... on Success {} ... on ErrorA {}",
 };
 
-module.exports = { MUTATION_PAYLOAD_PATTERN };
+export { MUTATION_PAYLOAD_PATTERN };

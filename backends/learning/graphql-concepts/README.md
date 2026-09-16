@@ -10,7 +10,7 @@ schema, concept notes, and Jest tests.
 |---|---|
 | Schema | [graphql-js](https://graphql.org/graphql-js/) + [@graphql-tools/schema](https://the-guild.dev/graphql/tools) — schema-first SDL + resolvers |
 | Batching | [`dataloader`](https://github.com/graphql/dataloader) |
-| Playground | Express + [`graphql-http`](https://github.com/graphql/graphql-http) + GraphiQL (see `app.js`) |
+| Playground | Express + [`graphql-http`](https://github.com/graphql/graphql-http) + GraphiQL (see `app.ts`) |
 | Testing | `graphqlSync` / `graphql` — no HTTP needed |
 
 ## Schema-first vs code-first
@@ -31,22 +31,22 @@ prefer that.)
 | 5 | `05-mutations/`     | CRUD, partial updates, mutation-payload (typed-error union) |
 | 6 | `06-pagination/`    | offset pagination, Relay cursor pagination, PageInfo |
 
-Each section has `schema.js` (runnable schema), `notes.js` (concepts + queries),
-and `schema.test.js` (Jest tests). Sections 02/03/05/06 add a `data.js` store;
-03 adds `loaders.js`.
+Each section has `schema.ts` (runnable schema), `notes.ts` (concepts + queries),
+and `schema.test.ts` (Jest tests). Sections 02/03/05/06 add a `data.ts` store;
+03 adds `loaders.ts`.
 
 ## Run the tests
 
 ```bash
 npm test                                  # whole repo
-npx jest backends/learning/graphql-concepts          # this module
-npx jest backends/learning/graphql-concepts/03       # one section
+npm test -- backends/learning/graphql-concepts          # this module
+npm test -- backends/learning/graphql-concepts/03       # one section
 ```
 
 ## Run the interactive playground
 
 ```bash
-node backends/learning/graphql-concepts/app.js
+npx tsx backends/learning/graphql-concepts/app.ts
 # open http://localhost:8000  (index)  or  http://localhost:8000/01/graphql
 ```
 

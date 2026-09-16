@@ -2,7 +2,14 @@
  * 100 posts seeded for pagination demos.
  */
 
-const SEED = Array.from({ length: 100 }, (_, i) => {
+interface Post {
+  id: string;
+  title: string;
+  body: string;
+  tags: string[];
+}
+
+const SEED: Post[] = Array.from({ length: 100 }, (_, i) => {
   const n = i + 1;
   return {
     id: String(n),
@@ -12,30 +19,27 @@ const SEED = Array.from({ length: 100 }, (_, i) => {
   };
 });
 
-let posts = SEED.map((r) => ({ ...r }));
+let posts: Post[] = SEED.map((r) => ({ ...r }));
 
-function reset() {
+function reset(): void {
   posts = SEED.map((r) => ({ ...r }));
 }
 
 // Cursors are opaque: clients must not parse or construct them. We base64-encode
 // a stable "post:<id>" payload.
-function encodeCursor(postId) {
+function encodeCursor(postId: string): string {
   return Buffer.from(`post:${postId}`).toString("base64");
 }
 
-function decodeCursor(cursor) {
+function decodeCursor(cursor: string): string | undefined {
   const payload = Buffer.from(cursor, "base64").toString("utf8");
   return payload.split(":", 2)[1]; // "post:42" → "42"
 }
 
 reset();
 
-module.exports = {
-  reset,
-  encodeCursor,
-  decodeCursor,
-  get posts() {
-    return posts;
-  },
-};
+// The CommonJS version exported a getter so importers always saw the current
+// array after reset() reassigned it. ESM exports are live bindings, which does
+// the same thing without the getter.
+export { reset, encodeCursor, decodeCursor, posts };
+export type { Post };

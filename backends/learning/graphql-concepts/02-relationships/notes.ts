@@ -45,4 +45,4 @@ const N_PLUS_ONE_EXAMPLE = {
   withDataLoader: "1 batch lookup",
 };
 
-module.exports = { N_PLUS_ONE_EXAMPLE };
+export { N_PLUS_ONE_EXAMPLE };

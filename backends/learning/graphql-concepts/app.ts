@@ -8,15 +8,18 @@
  *
  * Run:
  *   npm install                 (from the repo root)
- *   node backends/learning/graphql-concepts/app.js
+ *   npx tsx backends/learning/graphql-concepts/app.ts
  *
  * Then open:
  *   http://localhost:8000/            ← index listing all sections
  *   http://localhost:8000/01/graphql  ← section 01 GraphiQL IDE (GET) / endpoint (POST)
  */
 
-const express = require("express");
-const { createHandler } = require("graphql-http/lib/use/express");
+import { fileURLToPath } from "node:url";
+
+import express from "express";
+import { createHandler } from "graphql-http/lib/use/express";
+import type { GraphQLSchema } from "graphql";
 
 const app = express();
 
@@ -30,7 +33,7 @@ const SECTIONS = [
 ];
 
 // GraphiQL IDE served from CDN — points at the section's own /graphql endpoint.
-const graphiql = (endpoint) => `<!DOCTYPE html>
+const graphiql = (endpoint: string): string => `<!DOCTYPE html>
 <html><head><title>GraphiQL ${endpoint}</title>
 <link rel="stylesheet" href="https://unpkg.com/graphiql/graphiql.min.css" /></head>
 <body style="margin:0"><div id="graphiql" style="height:100vh"></div>
@@ -42,15 +45,27 @@ const graphiql = (endpoint) => `<!DOCTYPE html>
   ReactDOM.render(React.createElement(GraphiQL, { fetcher }), document.getElementById("graphiql"));
 </script></body></html>`;
 
+// Each section's schema is loaded by a path built at runtime. ESM has no
+// require(), so this is `await import()` — which is async, hence the top-level
+// await. A static import would not do: the paths come from the SECTIONS table.
+interface SectionModule {
+  schema: GraphQLSchema;
+  // graphql-http wants the context factory to return an object it can pass
+  // to resolvers, so the return type is stated rather than left unknown.
+  makeContext?: () => Record<string, unknown>;
+}
+
 for (const [prefix, dir] of SECTIONS) {
-  // eslint-disable-next-line import/no-dynamic-require, global-require
-  const { schema } = require(`./${dir}/schema`);
-  const context = dir === "03-dataloaders" ? require(`./${dir}/schema`).makeContext : undefined;
+  const mod = (await import(`./${dir}/schema.js`)) as SectionModule;
+  const makeContext = dir === "03-dataloaders" ? mod.makeContext : undefined;
   const endpoint = `/${prefix}/graphql`;
 
   // GET → GraphiQL IDE; POST → execute the query.
   app.get(endpoint, (_req, res) => res.type("html").send(graphiql(endpoint)));
-  app.post(endpoint, createHandler({ schema, context: context && (() => context()) }));
+  app.post(
+    endpoint,
+    createHandler({ schema: mod.schema, context: makeContext && (() => makeContext()) })
+  );
 }
 
 app.get("/", (_req, res) => {
@@ -62,8 +77,10 @@ app.get("/", (_req, res) => {
   });
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(8000, () => console.log("GraphQL playground on http://localhost:8000"));
 }
 
-module.exports = { app };
+export { app };

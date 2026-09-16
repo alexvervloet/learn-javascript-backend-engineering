@@ -34,4 +34,4 @@ const PAGINATION_STYLES = {
   cursor: { args: "first, after", pro: "stable pages", con: "no random page access" },
 };
 
-module.exports = { PAGINATION_STYLES };
+export { PAGINATION_STYLES };

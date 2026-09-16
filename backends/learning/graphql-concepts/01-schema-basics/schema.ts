@@ -8,11 +8,30 @@
  * GraphQL Schema Definition Language) and attach a parallel `resolvers` map.
  * `makeExecutableSchema` from @graphql-tools/schema stitches them together.
  *
- * Run the tests (schema.test.js) to see queries in action, or start app.js for
+ * Run the tests (schema.test.ts) to see queries in action, or start app.ts for
  * the interactive playground.
  */
 
-const { makeExecutableSchema } = require("@graphql-tools/schema");
+import { makeExecutableSchema } from "@graphql-tools/schema";
+
+// The SDL below and these interfaces describe the same shapes, and nothing keeps
+// them in step automatically — that is the job a codegen step does in a real
+// service. Writing them out means the resolvers are at least checked against
+// each other and against the store.
+interface Book {
+  id: string;
+  title: string;
+  author: string;
+  year: number;
+  description: string | null;
+}
+
+interface AddBookInput {
+  title: string;
+  author: string;
+  year: number;
+  description?: string | null;
+}
 
 // ── 1. SDL ──────────────────────────────────────────────────────────────────
 //
@@ -47,17 +66,17 @@ const typeDefs = /* GraphQL */ `
 
 // ── 2. In-memory store ────────────────────────────────────────────────────────
 
-const SEED = [
+const SEED: Book[] = [
   { id: "1", title: "Clean Code", author: "Robert C. Martin", year: 2008, description: null },
   { id: "2", title: "The Pragmatic Programmer", author: "Hunt & Thomas", year: 2019, description: "Updated for a new generation" },
   { id: "3", title: "Design Patterns", author: "Gang of Four", year: 1994, description: "The seminal patterns book" },
 ];
 
-let books = SEED.map((row) => ({ ...row }));
+let books: Book[] = SEED.map((row) => ({ ...row }));
 let nextId = 4;
 
 // Restore seed data — called by the Jest fixture between tests.
-function reset() {
+function reset(): void {
   books = SEED.map((row) => ({ ...row }));
   nextId = 4;
 }
@@ -70,16 +89,19 @@ function reset() {
 const resolvers = {
   Query: {
     books: () => books,
-    book: (_parent, { id }) => books.find((b) => b.id === id) ?? null,
+    // A resolver is (parent, args, context, info) => value. Only `args` matters
+    // here, and its shape comes from the SDL argument list above.
+    book: (_parent: unknown, { id }: { id: string }): Book | null =>
+      books.find((b) => b.id === id) ?? null,
   },
   Mutation: {
-    addBook: (_parent, { input }) => {
-      const row = { id: String(nextId), description: null, ...input };
+    addBook: (_parent: unknown, { input }: { input: AddBookInput }): Book => {
+      const row: Book = { id: String(nextId), description: null, ...input };
       books.push(row);
       nextId += 1;
       return row;
     },
-    deleteBook: (_parent, { id }) => {
+    deleteBook: (_parent: unknown, { id }: { id: string }): boolean => {
       const i = books.findIndex((b) => b.id === id);
       if (i === -1) return false;
       books.splice(i, 1);
@@ -90,4 +112,5 @@ const resolvers = {
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-module.exports = { schema, reset, typeDefs };
+export { schema, reset, typeDefs };
+export type { Book, AddBookInput };

@@ -50,4 +50,4 @@ const BATCH_FUNCTION_CONTRACT = {
   why: "DataLoader matches result[i] to the caller of load(keys[i])",
 };
 
-module.exports = { BATCH_FUNCTION_CONTRACT };
+export { BATCH_FUNCTION_CONTRACT };

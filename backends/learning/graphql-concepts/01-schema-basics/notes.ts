@@ -64,4 +64,4 @@ const KEY_PIECES = {
   "graphql / graphqlSync": "Execute a query against the schema (no server needed)",
 };
 
-module.exports = { SCALAR_TYPES, KEY_PIECES };
+export { SCALAR_TYPES, KEY_PIECES };

@@ -14,8 +14,9 @@
  * resolvers can use it) but isn't in the schema, so clients can't request it.
  */
 
-const { makeExecutableSchema } = require("@graphql-tools/schema");
-const db = require("./data");
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import * as db from "./data.js";
+import type { Author, Post } from "./data.js";
 
 const typeDefs = /* GraphQL */ `
   type Author {
@@ -45,21 +46,24 @@ const resolvers = {
   Query: {
     // Reading the seed arrays directly is not counted as a "DB call".
     posts: () => db.posts,
-    post: (_p, { id }) => db.posts.find((p) => p.id === id) ?? null,
+    post: (_p: unknown, { id }: { id: string }): Post | null =>
+      db.posts.find((p) => p.id === id) ?? null,
     authors: () => db.authors,
-    author: (_p, { id }) => db.authors.find((a) => a.id === id) ?? null,
+    author: (_p: unknown, { id }: { id: string }): Author | null =>
+      db.authors.find((a) => a.id === id) ?? null,
   },
   Author: {
     // Called once per Author when `posts` is requested — 3 authors = 3 calls.
-    posts: (author) => db.getPostsByAuthor(author.id),
+    // The parent argument is the Author this field is being resolved on.
+    posts: (author: Author): Post[] => db.getPostsByAuthor(author.id),
   },
   Post: {
     // Called once per Post when `author` is requested — 6 posts = 6 calls,
     // even though there are only 3 distinct authors. That's the N+1 problem.
-    author: (post) => db.getAuthor(post.authorId),
+    author: (post: Post): Author | null => db.getAuthor(post.authorId),
   },
 };
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-module.exports = { schema };
+export { schema };

@@ -10,8 +10,9 @@
  * This collapses N individual queries into 1 batch query.
  */
 
-const DataLoader = require("dataloader");
-const db = require("./data");
+import DataLoader from "dataloader";
+import * as db from "./data.js";
+import type { Author } from "./data.js";
 
 /**
  * The batch function. Contract (enforced by DataLoader):
@@ -20,7 +21,10 @@ const db = require("./data");
  *             (null/Error for keys not found)
  * DataLoader matches results to callers by position, so order matters.
  */
-async function batchLoadAuthors(keys) {
+// DataLoader hands the batch function a readonly array of keys and expects
+// values back in the same order — that ordering contract is what the type
+// signature pins down.
+async function batchLoadAuthors(keys: readonly string[]): Promise<(Author | null)[]> {
   return db.getAuthorsByIds(keys);
 }
 
@@ -33,4 +37,4 @@ function makeAuthorLoader() {
   return new DataLoader(batchLoadAuthors);
 }
 
-module.exports = { batchLoadAuthors, makeAuthorLoader };
+export { batchLoadAuthors, makeAuthorLoader };

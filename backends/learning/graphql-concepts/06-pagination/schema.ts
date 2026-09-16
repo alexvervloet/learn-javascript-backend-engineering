@@ -13,8 +13,9 @@
  * mechanics are visible.
  */
 
-const { makeExecutableSchema } = require("@graphql-tools/schema");
-const db = require("./data");
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import * as db from "./data.js";
+import type { Post } from "./data.js";
 
 const typeDefs = /* GraphQL */ `
   type Post {
@@ -60,7 +61,10 @@ const typeDefs = /* GraphQL */ `
 const resolvers = {
   Query: {
     // Pattern A: offset pagination.
-    postsPage: (_p, { offset = 0, limit = 10 }) => {
+    postsPage: (
+      _p: unknown,
+      { offset = 0, limit = 10 }: { offset?: number; limit?: number }
+    ) => {
       const total = db.posts.length;
       const items = db.posts.slice(offset, offset + limit);
       return {
@@ -72,7 +76,10 @@ const resolvers = {
     },
 
     // Pattern B: cursor pagination (Relay Connection).
-    postsConnection: (_p, { first = 10, after = null }) => {
+    postsConnection: (
+      _p: unknown,
+      { first = 10, after = null }: { first?: number; after?: string | null }
+    ) => {
       const all = db.posts;
       const total = all.length;
 
@@ -103,4 +110,4 @@ const resolvers = {
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
-module.exports = { schema };
+export { schema };

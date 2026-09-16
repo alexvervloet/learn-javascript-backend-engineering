@@ -46,4 +46,4 @@ const ABSTRACT_TYPES = {
   __resolveType: "(value) => concrete type name — required for both",
 };
 
-module.exports = { ABSTRACT_TYPES };
+export { ABSTRACT_TYPES };
