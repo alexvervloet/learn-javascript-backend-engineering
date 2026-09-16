@@ -34,3 +34,24 @@ way.
 that parses TypeScript itself instead of delegating to tsc. `@swc/jest` does not
 care which TypeScript version is installed, so the typecheck and the test run can
 never disagree about tooling. Typechecking stays with tsc, where it belongs.
+
+## A leftover .js file silently shadows its .ts replacement
+
+**Expected:** writing `foo.ts` and forgetting to delete `foo.js` would show up as
+a duplicate, or at worst as nothing at all.
+
+**What happened:** Jest resolves `moduleFileExtensions` in order and `js` comes
+before `ts`. With both files present it loaded the stale CommonJS one and failed
+with `SyntaxError: The requested module './binary_search_tree.js' does not
+provide an export named 'BinarySearchTreeNode'`. The export was right there in
+the `.ts` file, so the message sends you to inspect a file that has nothing wrong
+with it. tsc said nothing, because the `.ts` file was fine.
+
+**What to do differently:** delete the `.js` in the same step that writes the
+`.ts`, never as a cleanup pass afterwards. When a converted module reports a
+missing export that is plainly present, check for a twin before reading the
+source again:
+
+    for ts in $(find . -name '*.ts' -not -path '*/node_modules/*'); do
+      [ -f "${ts%.ts}.js" ] && echo "LEFTOVER: ${ts%.ts}.js"
+    done
