@@ -11,4 +11,4 @@ COPY backends/url-shortener ./backends/url-shortener
 WORKDIR /app/backends/url-shortener
 RUN npx prisma generate --schema=prisma/schema.prisma
 
-CMD ["node", "app/server.js"]
+CMD ["npx", "tsx", "app/server.ts"]
