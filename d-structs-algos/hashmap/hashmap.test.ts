@@ -1,6 +1,12 @@
-const { HashMap } = require("./hashmap");
+import { test, expect } from "@jest/globals";
+import { HashMap } from "./hashmap.js";
 
-const cases = [
+interface HashMapCase {
+  size: number;
+  items: [string, string][];
+}
+
+const cases: HashMapCase[] = [
   {
     size: 2,
     items: [
@@ -29,7 +35,7 @@ const cases = [
 ];
 
 test.each(cases)("inserts and retrieves all items %#", ({ size, items }) => {
-  const hm = new HashMap(size);
+  const hm = new HashMap<string>(size);
   for (const [key, val] of items) {
     expect(() => hm.insert(key, val)).not.toThrow();
   }
@@ -39,7 +45,7 @@ test.each(cases)("inserts and retrieves all items %#", ({ size, items }) => {
 });
 
 test("throws when getting a missing key", () => {
-  const hm = new HashMap(4);
+  const hm = new HashMap<string>(4);
   hm.insert("present", "value");
   expect(() => hm.get("absent")).toThrow("sorry, key not found");
 });
