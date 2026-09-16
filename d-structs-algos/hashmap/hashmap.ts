@@ -15,17 +15,14 @@ class HashMap<V> {
     let index = this.keyToIndex(key);
     const originalIndex = index;
     let firstIteration = true;
-    // noUncheckedIndexedAccess types an array read as `Slot<V> | undefined`.
-    // Probing only ever lands on a real index, so `?? null` folds the
-    // out-of-range case back into "empty slot".
-    let slot = this.hashmap[index] ?? null;
+    let slot = this.hashmap[index];
     while (slot !== null && slot[0] !== key) {
       if (!firstIteration && index === originalIndex) {
         throw new Error("hashmap is full");
       }
       index = (index + 1) % this.hashmap.length;
       firstIteration = false;
-      slot = this.hashmap[index] ?? null;
+      slot = this.hashmap[index];
     }
     this.hashmap[index] = [key, value];
   }
@@ -34,7 +31,7 @@ class HashMap<V> {
     let index = this.keyToIndex(key);
     const originalIndex = index;
     let firstIteration = true;
-    let slot = this.hashmap[index] ?? null;
+    let slot = this.hashmap[index];
     while (slot !== null) {
       if (slot[0] === key) {
         return slot[1];
@@ -44,7 +41,7 @@ class HashMap<V> {
       }
       index = (index + 1) % this.hashmap.length;
       firstIteration = false;
-      slot = this.hashmap[index] ?? null;
+      slot = this.hashmap[index];
     }
     throw new Error("sorry, key not found");
   }
