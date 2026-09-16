@@ -1,10 +1,10 @@
-class LinkedList {
-  constructor() {
-    this.head = null;
-    this.tail = null;
-  }
+import { Node } from "./node.js";
 
-  *[Symbol.iterator]() {
+class LinkedList<T> {
+  head: Node<T> | null = null;
+  tail: Node<T> | null = null;
+
+  *[Symbol.iterator](): Generator<Node<T>> {
     let node = this.head;
     while (node !== null) {
       yield node;
@@ -12,7 +12,7 @@ class LinkedList {
     }
   }
 
-  addToHead(node) {
+  addToHead(node: Node<T>): void {
     if (this.head === null) {
       this.tail = node;
     }
@@ -20,8 +20,8 @@ class LinkedList {
     this.head = node;
   }
 
-  addToTail(node) {
-    if (this.head === null) {
+  addToTail(node: Node<T>): void {
+    if (this.head === null || this.tail === null) {
       this.head = node;
       this.tail = node;
       return;
@@ -30,7 +30,7 @@ class LinkedList {
     this.tail = node;
   }
 
-  removeFromHead() {
+  removeFromHead(): Node<T> | undefined {
     if (this.head === null) {
       return undefined;
     }
@@ -43,7 +43,7 @@ class LinkedList {
     return removing;
   }
 
-  removeFromTail() {
+  removeFromTail(): Node<T> | undefined {
     if (this.tail === null) {
       return undefined;
     }
@@ -53,19 +53,25 @@ class LinkedList {
       this.tail = null;
       return removing;
     }
+    // Past the head === tail check the list has at least two nodes, so the walk
+    // below always finds the node before the tail. The compiler cannot see that,
+    // hence the explicit null guard inside the loop.
     let current = this.head;
-    while (current.next !== this.tail) {
+    while (current !== null && current.next !== this.tail) {
       current = current.next;
+    }
+    if (current === null) {
+      return undefined;
     }
     current.setNext(null);
     this.tail = current;
     return removing;
   }
 
-  toString() {
-    const nodes = [];
+  toString(): string {
+    const nodes: T[] = [];
     let current = this.head;
-    while (current && current.val !== undefined) {
+    while (current !== null && current.val !== undefined) {
       nodes.push(current.val);
       current = current.next;
     }
@@ -73,4 +79,4 @@ class LinkedList {
   }
 }
 
-module.exports = { LinkedList };
+export { LinkedList };

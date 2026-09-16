@@ -1,8 +1,9 @@
-const { Node } = require("./node");
+import { test, expect } from "@jest/globals";
+import { Node } from "./node.js";
 
-function nodeListToArray(node) {
-  const result = [];
-  let current = node;
+function nodeListToArray(node: Node<string>): string[] {
+  const result: string[] = [];
+  let current: Node<string> | null = node;
   while (current) {
     result.push(current.val);
     current = current.next;
@@ -10,7 +11,7 @@ function nodeListToArray(node) {
   return result;
 }
 
-function getLastNode(node) {
+function getLastNode(node: Node<string>): Node<string> {
   let current = node;
   while (current.next) {
     current = current.next;
@@ -18,7 +19,7 @@ function getLastNode(node) {
   return current;
 }
 
-const cases = [
+const cases: [string, string[]][] = [
   ["Anton Chigurh", ["Llewelyn Moss", "Anton Chigurh"]],
   ["Carson Wells", ["Llewelyn Moss", "Anton Chigurh", "Carson Wells"]],
   ["Ed Tom Bell", ["Llewelyn Moss", "Anton Chigurh", "Carson Wells", "Ed Tom Bell"]],
