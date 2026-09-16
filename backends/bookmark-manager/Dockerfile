@@ -11,4 +11,4 @@ COPY backends/bookmark-manager ./backends/bookmark-manager
 WORKDIR /app/backends/bookmark-manager
 RUN npx prisma generate --schema=prisma/schema.prisma
 
-CMD ["node", "app/server.js"]
+CMD ["npx", "tsx", "app/server.ts"]

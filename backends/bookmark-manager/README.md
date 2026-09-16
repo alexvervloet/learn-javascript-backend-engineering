@@ -27,24 +27,26 @@ Full-featured Express backend for saving, organizing, and tagging bookmarks.
 
 ```
 app/
-  main.js           — app factory, middleware, routers
-  server.js         — network entry point (listen)
-  worker.js         — BullMQ worker + scheduled flush
-  config.js         — settings from environment
-  database.js       — shared Prisma client
-  security.js       — password hashing and JWT helpers
-  rate_limit.js     — express-rate-limit setup
-  redis_client.js   — lazy Redis singleton (swappable in tests)
-  tasks.js          — background task logic + enqueue helpers
-  queue.js          — BullMQ queue setup
-  dependencies.js   — auth middleware
-  exceptions.js     — HttpError + error-handling middleware
+  main.ts           — app factory, middleware, routers
+  server.ts         — network entry point (listen)
+  worker.ts         — BullMQ worker + scheduled flush
+  config.ts         — settings from environment
+  database.ts       — shared Prisma client
+  security.ts       — password hashing and JWT helpers
+  rate_limit.ts     — express-rate-limit setup
+  redis_client.ts   — lazy Redis singleton (swappable in tests)
+  tasks.ts          — background task logic + enqueue helpers
+  queue.ts          — BullMQ queue setup
+  dependencies.ts   — auth middleware
+  exceptions.ts     — HttpError + error-handling middleware
+  validate.ts       — Zod body-validation middleware
+  request.ts        — AppRequest type + path/query parameter helpers
   schemas/          — Zod request schemas + response serializers
   routers/          — auth, bookmarks, categories, tags
 prisma/
   schema.prisma     — models
   migrations/       — migration scripts
-tests/              — Jest + supertest suite
+tests/              — Jest + supertest suite (TypeScript, run as ESM)
 ```
 
 ## Setup
@@ -55,7 +57,7 @@ npm install
 npm run prisma:generate
 
 # Run the test suite (uses an isolated SQLite database)
-npx jest backends/bookmark-manager
+npm test -- backends/bookmark-manager
 ```
 
 To run the full stack (API + Postgres + Redis + worker):
