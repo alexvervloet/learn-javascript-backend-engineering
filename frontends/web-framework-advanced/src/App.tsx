@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import Sidebar from './components/Sidebar.jsx'
-import TopicPanel from './components/TopicPanel.jsx'
-import { ALL_TOPICS } from './topics.js'
+import Sidebar from './components/Sidebar.tsx'
+import TopicPanel from './components/TopicPanel.tsx'
+import { ALL_TOPICS } from './topics.ts'
 
 export default function App() {
-  const [activeTopicId, setActiveTopicId] = useState(null)
+  // useState(null) infers `null` alone, so the state type is stated.
+  const [activeTopicId, setActiveTopicId] = useState<string | null>(null)
   const activeTopic = ALL_TOPICS.find(t => t.id === activeTopicId) ?? null
 
   return (

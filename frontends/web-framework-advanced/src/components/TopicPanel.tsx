@@ -1,6 +1,11 @@
-import ApiPlayground from './ApiPlayground.jsx'
+import ApiPlayground from './ApiPlayground.tsx'
+import type { Topic } from '../topics.ts'
 
-export default function TopicPanel({ topic }) {
+interface TopicPanelProps {
+  topic: Topic | null
+}
+
+export default function TopicPanel({ topic }: TopicPanelProps) {
   if (!topic) {
     return (
       <main className="main-panel">

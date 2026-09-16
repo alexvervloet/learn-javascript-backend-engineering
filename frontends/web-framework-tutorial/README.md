@@ -12,9 +12,9 @@ React + Vite (JSX, no TypeScript)
 
 ```
 src/
-  App.jsx           — sidebar + topic panel layout
-  main.jsx          — React entry point
-  topics.js         — topic data (titles, descriptions, code examples)
+  App.tsx           — sidebar + topic panel layout
+  main.tsx          — React entry point
+  topics.ts         — topic data (titles, descriptions, code examples)
   groups.json       — sidebar grouping/ordering
   components/
     Sidebar.jsx     — topic navigation list

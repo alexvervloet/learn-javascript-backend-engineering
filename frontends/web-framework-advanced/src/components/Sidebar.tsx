@@ -1,15 +1,24 @@
 import { useState } from 'react'
-import { GROUPS } from '../topics.js'
+import { GROUPS } from '../topics.ts'
+import type { HttpMethod, Topic } from '../topics.ts'
 
-const METHOD_COLORS = {
+// Record<HttpMethod, string> ties the palette to the method union: add a
+// method to the union and this stops compiling until it has a colour.
+const METHOD_COLORS: Record<HttpMethod, string> = {
   GET: '#3fb950', POST: '#58a6ff', PUT: '#d29922',
   PATCH: '#bc8cff', DELETE: '#f85149',
 }
 
-export default function Sidebar({ activeTopic, onSelect }) {
-  const [collapsed, setCollapsed] = useState({})
+interface SidebarProps {
+  activeTopic: Topic | null
+  onSelect: (topic: Topic) => void
+}
 
-  function toggle(id) {
+export default function Sidebar({ activeTopic, onSelect }: SidebarProps) {
+  // Keyed by group id; an empty object infers as {} and cannot be indexed.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
+  function toggle(id: string) {
     setCollapsed(c => ({ ...c, [id]: !c[id] }))
   }
 

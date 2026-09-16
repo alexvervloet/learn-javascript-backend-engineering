@@ -1,9 +1,28 @@
 import { useState, useRef } from 'react'
-import { BASE_URL } from '../topics.js'
+import { BASE_URL } from '../topics.ts'
+import type { Endpoint, EndpointField } from '../topics.ts'
 
-function syntaxHighlight(json) {
-  if (typeof json !== 'string') json = JSON.stringify(json, null, 2)
-  return json.replace(
+// A form value is whatever the matching input produced: text inputs give
+// strings, the file input gives a File. Naming the union is what lets the send()
+// logic below tell them apart instead of hoping.
+type FieldValue = string | File | null
+
+type FieldValues = Record<string, FieldValue>
+
+// What the panel renders after a request. `data` is whatever the endpoint
+// returned — that is the point of a playground — so it stays unknown.
+interface RequestResult {
+  status: number | null
+  ok?: boolean
+  time: number | null
+  data?: unknown
+  error?: string
+  streaming?: boolean
+}
+
+function syntaxHighlight(json: unknown): string {
+  const text = typeof json === 'string' ? json : JSON.stringify(json, null, 2)
+  return text.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
     match => {
       if (/^"/.test(match)) {
@@ -18,11 +37,16 @@ function syntaxHighlight(json) {
   )
 }
 
-function buildUrl(path, fields, values) {
+// Only string values can go into a URL; a File never can.
+function asText(value: FieldValue): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+function buildUrl(path: string, fields: EndpointField[], values: FieldValues): string {
   let url = BASE_URL + path
   const pathFields = fields.filter(f => f.in === 'path')
   for (const f of pathFields) {
-    const val = values[f.name]
+    const val = asText(values[f.name])
     if (val !== undefined && val !== '') {
       url = url.replace(`{${f.name}}`, encodeURIComponent(val))
     }
@@ -30,7 +54,7 @@ function buildUrl(path, fields, values) {
   const queryFields = fields.filter(f => f.in === 'query')
   const params = new URLSearchParams()
   for (const f of queryFields) {
-    const val = values[f.name]
+    const val = asText(values[f.name])
     if (val !== undefined && val !== '') {
       if (f.name === 'q-list') {
         val.split(',').forEach(v => params.append('q-list', v.trim()))
@@ -44,14 +68,20 @@ function buildUrl(path, fields, values) {
   return url
 }
 
-function FileInput({ name, onChange }) {
-  const [fileName, setFileName] = useState(null)
-  const ref = useRef()
+interface FileInputProps {
+  name: string
+  onChange: (name: string, file: File | null) => void
+}
 
-  function handleChange(e) {
-    const file = e.target.files[0]
+function FileInput({ name, onChange }: FileInputProps) {
+  const [fileName, setFileName] = useState<string | null>(null)
+  const ref = useRef<HTMLInputElement>(null)
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // files is FileList | null, and the list can be empty.
+    const file = e.target.files?.[0] ?? null
     setFileName(file ? file.name : null)
-    onChange(name, file ?? null)
+    onChange(name, file)
   }
 
   return (
@@ -65,13 +95,18 @@ function FileInput({ name, onChange }) {
   )
 }
 
-export default function ApiPlayground({ endpoint }) {
-  const [values, setValues] = useState({})
-  const [response, setResponse] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [streamLines, setStreamLines] = useState([])
+interface ApiPlaygroundProps {
+  endpoint: Endpoint
+}
 
-  function set(name, val) {
+export default function ApiPlayground({ endpoint }: ApiPlaygroundProps) {
+  // Each useState starts empty, so the element type has to be written out.
+  const [values, setValues] = useState<FieldValues>({})
+  const [response, setResponse] = useState<RequestResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [streamLines, setStreamLines] = useState<string[]>([])
+
+  function set(name: string, val: FieldValue) {
     setValues(v => ({ ...v, [name]: val }))
   }
 
@@ -80,27 +115,29 @@ export default function ApiPlayground({ endpoint }) {
     setResponse(null)
     setStreamLines([])
 
-    const url = buildUrl(endpoint.path, endpoint.fields, values)
+    // fields is optional on an endpoint that takes none.
+    const fields = endpoint.fields ?? []
+    const url = buildUrl(endpoint.path, fields, values)
     const method = endpoint.method
-    const headers = {}
+    const headers: Record<string, string> = {}
 
     // Custom headers from header fields
-    for (const f of endpoint.fields.filter(f => f.in === 'header')) {
-      const val = values[f.name]
+    for (const f of fields.filter(f => f.in === 'header')) {
+      const val = asText(values[f.name])
       if (val !== undefined && val !== '') {
         headers[f.name] = val
       }
     }
 
-    let body = undefined
+    let body: string | FormData | undefined = undefined
 
-    const bodyField = endpoint.fields.find(f => f.in === 'body')
-    const formFields = endpoint.fields.filter(f => f.in === 'form')
-    const fileFields = endpoint.fields.filter(f => f.in === 'file')
+    const bodyField = fields.find(f => f.in === 'body')
+    const formFields = fields.filter(f => f.in === 'form')
+    const fileFields = fields.filter(f => f.in === 'file')
 
     if (bodyField) {
       try {
-        body = JSON.stringify(JSON.parse(values[bodyField.name] ?? '{}'))
+        body = JSON.stringify(JSON.parse(asText(values[bodyField.name]) ?? '{}'))
         headers['Content-Type'] = 'application/json'
       } catch {
         setResponse({ error: 'Invalid JSON in body', status: null, time: null })
@@ -110,12 +147,12 @@ export default function ApiPlayground({ endpoint }) {
     } else if (formFields.length > 0 || fileFields.length > 0) {
       const fd = new FormData()
       for (const f of formFields) {
-        const val = values[f.name]
+        const val = asText(values[f.name])
         if (val !== undefined && val !== '') fd.append(f.name, val)
       }
       for (const f of fileFields) {
         const file = values[f.name]
-        if (file) fd.append(f.name, file)
+        if (file instanceof File) fd.append(f.name, file)
       }
       body = fd
     }
@@ -124,6 +161,8 @@ export default function ApiPlayground({ endpoint }) {
     try {
       if (endpoint.streaming) {
         const res = await fetch(url, { method, headers, credentials: 'include' })
+        // res.body is nullable — a response can have no stream at all.
+        if (!res.body) throw new Error('Response had no body to stream')
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         const elapsed = Math.round(performance.now() - t0)
@@ -137,7 +176,7 @@ export default function ApiPlayground({ endpoint }) {
       } else {
         const res = await fetch(url, { method, headers, body, credentials: 'include' })
         const elapsed = Math.round(performance.now() - t0)
-        let data
+        let data: unknown
         const contentType = res.headers.get('content-type') ?? ''
         if (contentType.includes('application/json')) {
           data = await res.json()
@@ -153,12 +192,13 @@ export default function ApiPlayground({ endpoint }) {
     }
   }
 
-  const pathFields = endpoint.fields.filter(f => f.in === 'path')
-  const queryFields = endpoint.fields.filter(f => f.in === 'query')
-  const headerFields = endpoint.fields.filter(f => f.in === 'header')
-  const bodyField = endpoint.fields.find(f => f.in === 'body')
-  const formFields = endpoint.fields.filter(f => f.in === 'form')
-  const fileFields = endpoint.fields.filter(f => f.in === 'file')
+  const renderFields = endpoint.fields ?? []
+  const pathFields = renderFields.filter(f => f.in === 'path')
+  const queryFields = renderFields.filter(f => f.in === 'query')
+  const headerFields = renderFields.filter(f => f.in === 'header')
+  const bodyField = renderFields.find(f => f.in === 'body')
+  const formFields = renderFields.filter(f => f.in === 'form')
+  const fileFields = renderFields.filter(f => f.in === 'file')
 
   return (
     <div className="playground-card">
@@ -210,7 +250,7 @@ export default function ApiPlayground({ endpoint }) {
               className="field-input"
               style={{ minHeight: 120 }}
               placeholder={bodyField.placeholder}
-              value={values[bodyField.name] ?? ''}
+              value={asText(values[bodyField.name]) ?? ''}
               onChange={e => set(bodyField.name, e.target.value)}
             />
           </div>
@@ -264,7 +304,14 @@ export default function ApiPlayground({ endpoint }) {
   )
 }
 
-function FieldSection({ title, fields, values, onChange }) {
+interface FieldSectionProps {
+  title: string
+  fields: EndpointField[]
+  values: FieldValues
+  onChange: (name: string, value: FieldValue) => void
+}
+
+function FieldSection({ title, fields, values, onChange }: FieldSectionProps) {
   return (
     <div className="fields-section">
       <div className="fields-section-title">{title}</div>
@@ -278,17 +325,17 @@ function FieldSection({ title, fields, values, onChange }) {
           {f.type === 'select' ? (
             <select
               className="field-input"
-              value={values[f.name] ?? f.options[0]}
+              value={asText(values[f.name]) ?? f.options?.[0] ?? ''}
               onChange={e => onChange(f.name, e.target.value)}
             >
-              {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+              {(f.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           ) : (
             <input
               className="field-input"
               type={f.type === 'number' ? 'text' : 'text'}
               placeholder={f.placeholder ?? ''}
-              value={values[f.name] ?? ''}
+              value={asText(values[f.name]) ?? ''}
               onChange={e => onChange(f.name, e.target.value)}
             />
           )}

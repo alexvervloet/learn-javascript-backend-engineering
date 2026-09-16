@@ -1,9 +1,36 @@
 import { useState, useRef } from 'react'
-import { BASE_URL, WS_BASE_URL } from '../topics.js'
+import { BASE_URL, WS_BASE_URL } from '../topics.ts'
+import type { Endpoint, EndpointField } from '../topics.ts'
 
-function syntaxHighlight(json) {
-  if (typeof json !== 'string') json = JSON.stringify(json, null, 2)
-  return json.replace(
+// A form value is whatever the matching input produced: text inputs give
+// strings, the file input gives a File. Naming the union is what lets the send()
+// logic below tell them apart instead of hoping.
+type FieldValue = string | File | null
+
+type FieldValues = Record<string, FieldValue>
+
+// What the panel renders after a request. `data` is whatever the endpoint
+// returned — that is the point of a playground — so it stays unknown.
+interface RequestResult {
+  status: number | null
+  ok?: boolean
+  time: number | null
+  data?: unknown
+  error?: string
+  streaming?: boolean
+  headers?: Record<string, string>
+}
+
+// One line in the WebSocket transcript.
+interface WsMessage {
+  dir: 'in' | 'out' | 'system'
+  text: string
+  error?: boolean
+}
+
+function syntaxHighlight(json: unknown): string {
+  const text = typeof json === 'string' ? json : JSON.stringify(json, null, 2)
+  return text.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
     match => {
       if (/^"/.test(match)) {
@@ -18,17 +45,22 @@ function syntaxHighlight(json) {
   )
 }
 
-function buildUrl(path, fields, values) {
+// Only string values can go into a URL; a File never can.
+function asText(value: FieldValue): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+function buildUrl(path: string, fields: EndpointField[], values: FieldValues): string {
   let url = BASE_URL + path
   for (const f of fields.filter(f => f.in === 'path')) {
-    const val = values[f.name]
+    const val = asText(values[f.name])
     if (val !== undefined && val !== '') {
       url = url.replace(`{${f.name}}`, encodeURIComponent(val))
     }
   }
   const params = new URLSearchParams()
   for (const f of fields.filter(f => f.in === 'query')) {
-    const val = values[f.name]
+    const val = asText(values[f.name])
     if (val !== undefined && val !== '') params.set(f.name, val)
   }
   const qs = params.toString()
@@ -36,12 +68,18 @@ function buildUrl(path, fields, values) {
   return url
 }
 
-function FileInput({ name, onChange }) {
-  const [fileName, setFileName] = useState(null)
-  function handleChange(e) {
-    const file = e.target.files[0]
+interface FileInputProps {
+  name: string
+  onChange: (name: string, file: File | null) => void
+}
+
+function FileInput({ name, onChange }: FileInputProps) {
+  const [fileName, setFileName] = useState<string | null>(null)
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // files is FileList | null, and the list can be empty.
+    const file = e.target.files?.[0] ?? null
     setFileName(file ? file.name : null)
-    onChange(name, file ?? null)
+    onChange(name, file)
   }
   return (
     <div className="file-input-wrapper">
@@ -56,11 +94,15 @@ function FileInput({ name, onChange }) {
 
 // ── WebSocket Playground ───────────────────────────────────────────────────────
 
-function WsPlayground({ endpoint }) {
-  const [messages, setMessages] = useState([])
+interface WsPlaygroundProps {
+  endpoint: Endpoint
+}
+
+function WsPlayground({ endpoint }: WsPlaygroundProps) {
+  const [messages, setMessages] = useState<WsMessage[]>([])
   const [input, setInput] = useState('')
   const [connected, setConnected] = useState(false)
-  const wsRef = useRef(null)
+  const wsRef = useRef<WebSocket | null>(null)
 
   const wsUrl = WS_BASE_URL + endpoint.path
 
@@ -73,8 +115,8 @@ function WsPlayground({ endpoint }) {
       setConnected(true)
       setMessages(m => [...m, { dir: 'system', text: `Connected to ${wsUrl}` }])
     }
-    ws.onmessage = e => {
-      setMessages(m => [...m, { dir: 'in', text: e.data }])
+    ws.onmessage = (e: MessageEvent) => {
+      setMessages(m => [...m, { dir: 'in', text: String(e.data) }])
     }
     ws.onerror = () => {
       setMessages(m => [...m, { dir: 'system', text: 'Connection error', error: true }])
@@ -169,15 +211,20 @@ function WsPlayground({ endpoint }) {
 
 // ── HTTP Playground ────────────────────────────────────────────────────────────
 
-export default function ApiPlayground({ endpoint }) {
+interface ApiPlaygroundProps {
+  endpoint: Endpoint
+}
+
+export default function ApiPlayground({ endpoint }: ApiPlaygroundProps) {
   if (endpoint.ws) return <WsPlayground endpoint={endpoint} />
 
-  const [values, setValues] = useState({})
-  const [response, setResponse] = useState(null)
+  // Each useState starts empty, so the element type has to be written out.
+  const [values, setValues] = useState<FieldValues>({})
+  const [response, setResponse] = useState<RequestResult | null>(null)
   const [loading, setLoading] = useState(false)
-  const [streamLines, setStreamLines] = useState([])
+  const [streamLines, setStreamLines] = useState<string[]>([])
 
-  function set(name, val) {
+  function set(name: string, val: FieldValue) {
     setValues(v => ({ ...v, [name]: val }))
   }
 
@@ -186,23 +233,25 @@ export default function ApiPlayground({ endpoint }) {
     setResponse(null)
     setStreamLines([])
 
-    const url = buildUrl(endpoint.path, endpoint.fields, values)
+    // fields is optional on an endpoint that takes none.
+    const fields = endpoint.fields ?? []
+    const url = buildUrl(endpoint.path, fields, values)
     const method = endpoint.method
-    const headers = {}
+    const headers: Record<string, string> = {}
 
-    for (const f of endpoint.fields.filter(f => f.in === 'header')) {
-      const val = values[f.name]
+    for (const f of fields.filter(f => f.in === 'header')) {
+      const val = asText(values[f.name])
       if (val !== undefined && val !== '') headers[f.name] = val
     }
 
-    let body = undefined
-    const bodyField = endpoint.fields.find(f => f.in === 'body')
-    const formFields = endpoint.fields.filter(f => f.in === 'form')
-    const fileFields = endpoint.fields.filter(f => f.in === 'file')
+    let body: string | FormData | undefined = undefined
+    const bodyField = fields.find(f => f.in === 'body')
+    const formFields = fields.filter(f => f.in === 'form')
+    const fileFields = renderFields.filter(f => f.in === 'file')
 
     if (bodyField) {
       try {
-        body = JSON.stringify(JSON.parse(values[bodyField.name] ?? '{}'))
+        body = JSON.stringify(JSON.parse(asText(values[bodyField.name]) ?? '{}'))
         headers['Content-Type'] = 'application/json'
       } catch {
         setResponse({ error: 'Invalid JSON in body', status: null, time: null })
@@ -212,12 +261,12 @@ export default function ApiPlayground({ endpoint }) {
     } else if (formFields.length > 0 || fileFields.length > 0) {
       const fd = new FormData()
       for (const f of formFields) {
-        const val = values[f.name]
+        const val = asText(values[f.name])
         if (val !== undefined && val !== '') fd.append(f.name, val)
       }
       for (const f of fileFields) {
         const file = values[f.name]
-        if (file) fd.append(f.name, file)
+        if (file instanceof File) fd.append(f.name, file)
       }
       body = fd
     }
@@ -226,6 +275,8 @@ export default function ApiPlayground({ endpoint }) {
     try {
       if (endpoint.streaming) {
         const res = await fetch(url, { method, headers })
+        // res.body is nullable — a response can have no stream at all.
+        if (!res.body) throw new Error('Response had no body to stream')
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         const elapsed = Math.round(performance.now() - t0)
@@ -239,14 +290,16 @@ export default function ApiPlayground({ endpoint }) {
         const res = await fetch(url, { method, headers, body })
         const elapsed = Math.round(performance.now() - t0)
         const contentType = res.headers.get('content-type') ?? ''
-        let data
+        let data: unknown
         if (contentType.includes('application/json')) {
           data = await res.json()
         } else {
           data = await res.text()
         }
-        const responseHeaders = {}
-        res.headers.forEach((v, k) => { responseHeaders[k] = v })
+        const responseHeaders: Record<string, string> = {}
+        res.headers.forEach((v, k) => {
+          responseHeaders[k] = v
+        })
         setResponse({ status: res.status, ok: res.ok, time: elapsed, data, headers: responseHeaders })
       }
     } catch (err) {
@@ -256,12 +309,13 @@ export default function ApiPlayground({ endpoint }) {
     }
   }
 
-  const pathFields = endpoint.fields.filter(f => f.in === 'path')
-  const queryFields = endpoint.fields.filter(f => f.in === 'query')
-  const headerFields = endpoint.fields.filter(f => f.in === 'header')
-  const bodyField = endpoint.fields.find(f => f.in === 'body')
-  const formFields = endpoint.fields.filter(f => f.in === 'form')
-  const fileFields = endpoint.fields.filter(f => f.in === 'file')
+  const renderFields = endpoint.fields ?? []
+  const pathFields = renderFields.filter(f => f.in === 'path')
+  const queryFields = renderFields.filter(f => f.in === 'query')
+  const headerFields = renderFields.filter(f => f.in === 'header')
+  const bodyField = renderFields.find(f => f.in === 'body')
+  const formFields = renderFields.filter(f => f.in === 'form')
+  const fileFields = renderFields.filter(f => f.in === 'file')
 
   return (
     <div className="playground-card">
@@ -303,7 +357,7 @@ export default function ApiPlayground({ endpoint }) {
               className="field-input"
               style={{ minHeight: 120 }}
               placeholder={bodyField.placeholder}
-              value={values[bodyField.name] ?? ''}
+              value={asText(values[bodyField.name]) ?? ''}
               onChange={e => set(bodyField.name, e.target.value)}
             />
           </div>
@@ -332,7 +386,9 @@ export default function ApiPlayground({ endpoint }) {
                 {Object.entries(response.headers)
                   .filter(([k]) => k.startsWith('x-'))
                   .map(([k, v]) => (
-                    <div key={k}><span style={{ color: 'var(--accent)' }}>{k}:</span> {v}</div>
+                    <div key={k}>
+                      <span style={{ color: 'var(--accent)' }}>{k}:</span> {String(v)}
+                    </div>
                   ))}
               </div>
             )}
@@ -363,7 +419,14 @@ export default function ApiPlayground({ endpoint }) {
   )
 }
 
-function FieldSection({ title, fields, values, onChange }) {
+interface FieldSectionProps {
+  title: string
+  fields: EndpointField[]
+  values: FieldValues
+  onChange: (name: string, value: FieldValue) => void
+}
+
+function FieldSection({ title, fields, values, onChange }: FieldSectionProps) {
   return (
     <div className="fields-section">
       <div className="fields-section-title">{title}</div>
@@ -377,17 +440,17 @@ function FieldSection({ title, fields, values, onChange }) {
           {f.type === 'select' ? (
             <select
               className="field-input"
-              value={values[f.name] ?? f.options[0]}
+              value={asText(values[f.name]) ?? f.options?.[0] ?? ''}
               onChange={e => onChange(f.name, e.target.value)}
             >
-              {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+              {(f.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           ) : (
             <input
               className="field-input"
               type="text"
               placeholder={f.placeholder ?? ''}
-              value={values[f.name] ?? ''}
+              value={asText(values[f.name]) ?? ''}
               onChange={e => onChange(f.name, e.target.value)}
             />
           )}
