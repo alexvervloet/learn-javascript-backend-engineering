@@ -1,0 +1,38 @@
+// Root TypeScript config for the whole repo.
+//
+// module/moduleResolution are "nodenext" so the code matches how Node really
+// loads ESM: relative imports carry an explicit ".js" extension even though the
+// file on disk is ".ts". tsx and Jest both map that back to the .ts source.
+//
+// noEmit is deliberate. Nothing here is compiled to a dist/ folder — every module
+// runs straight from source with `npx tsx <file>`, and `npm run typecheck` is
+// what enforces the types.
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["backends/**/*.ts", "d-structs-algos/**/*.ts", "*.ts"],
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "**/generated/**",
+    "frontends",
+    ".history"
+  ]
+}
