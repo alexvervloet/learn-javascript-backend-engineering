@@ -17,29 +17,50 @@
  * message and `call.end()`, and your callback fires with the single response.
  *
  * HOW TO RUN:
- *   node 03_client_streaming.js
+ *   npx tsx 03_client_streaming.ts
  */
 
-const grpc = require("@grpc/grpc-js");
-const { loadProto } = require("./load");
+import { fileURLToPath } from "node:url";
+
+import grpc from "@grpc/grpc-js";
+import { loadProto } from "./load.js";
 
 const PORT = 50053;
 const CHUNK_SIZE = 64 * 1024; // 64 KB per chunk
+// The message shapes from upload.proto. proto-loader parses the .proto at
+// runtime, so these are a claim about it rather than generated from it.
+interface Chunk {
+  filename: string;
+  data: Buffer;
+  chunkIndex: number;
+}
+
+interface UploadResult {
+  filename: string;
+  totalChunks: number;
+  totalBytes: number;
+  status: string;
+}
+
 const { FileUpload } = loadProto("upload.proto");
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
 
 const handlers = {
-  UploadFile(call, callback) {
+  UploadFile(
+    call: grpc.ServerReadableStream<Chunk, UploadResult>,
+    callback: grpc.sendUnaryData<UploadResult>
+  ) {
     let totalChunks = 0;
     let totalBytes = 0;
-    let filename = null;
+    // Filled in from the first chunk, so the annotation has to be written out.
+    let filename: string | null = null;
 
-    call.on("data", (chunk) => {
+    call.on("data", (chunk: Chunk) => {
       if (filename === null) filename = chunk.filename;
       totalChunks += 1;
       totalBytes += chunk.data.length;
@@ -58,14 +79,14 @@ const handlers = {
   },
 };
 
-function makeServer() {
+function makeServer(): grpc.Server {
   const server = new grpc.Server();
   server.addService(FileUpload.service, handlers);
   return server;
 }
 
-function startServer(server) {
-  return new Promise((resolve, reject) => {
+function startServer(server: grpc.Server): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     server.bindAsync(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure(), (err) =>
       err ? reject(err) : resolve()
     );
@@ -78,8 +99,22 @@ function startServer(server) {
 
 // Stream `data` to the server as a sequence of Chunk messages, then resolve with
 // the server's single UploadResult.
-function uploadFile(client, filename, data, chunkSize) {
-  return new Promise((resolve, reject) => {
+// The stub's methods come from the .proto at runtime, so the loader's
+// ServiceClient type knows nothing about them. This is the declaration of what
+// upload.proto produces.
+interface FileUploadClient extends grpc.Client {
+  UploadFile(
+    cb: (err: grpc.ServiceError | null, res: UploadResult) => void
+  ): grpc.ClientWritableStream<Chunk>;
+}
+
+function uploadFile(
+  client: FileUploadClient,
+  filename: string,
+  data: Buffer,
+  chunkSize: number
+): Promise<UploadResult> {
+  return new Promise<UploadResult>((resolve, reject) => {
     const call = client.UploadFile((err, result) => (err ? reject(err) : resolve(result)));
     (async () => {
       let index = 0;
@@ -93,8 +128,11 @@ function uploadFile(client, filename, data, chunkSize) {
   });
 }
 
-async function runClient() {
-  const client = new FileUpload(`localhost:${PORT}`, grpc.credentials.createInsecure());
+async function runClient(): Promise<void> {
+  const client = new FileUpload(
+    `localhost:${PORT}`,
+    grpc.credentials.createInsecure()
+  ) as unknown as FileUploadClient;
 
   console.log("\n1. Upload a small file (fits in one chunk):");
   const small = Buffer.from("Hello, gRPC!".repeat(10));
@@ -113,7 +151,7 @@ async function runClient() {
   client.close();
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log("CONCEPT 03 — Client Streaming RPC");
   console.log("=".repeat(60));
@@ -127,11 +165,13 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { makeServer, PORT };
+export { makeServer, PORT };

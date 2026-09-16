@@ -13,7 +13,7 @@ compression) and **Protocol Buffers** (compact, schema-validated binary).
 ## No codegen step
 
 There's **no `protoc` build step** and no generated stubs to keep in sync.
-`@grpc/proto-loader` parses the `.proto` at runtime (see [load.js](load.js)) and
+`@grpc/proto-loader` parses the `.proto` at runtime (see [load.ts](load.ts)) and
 hands back the service constructors and message shapes directly. Edit a `.proto`,
 restart — done.
 
@@ -35,23 +35,23 @@ grpc-concepts/
     stock.proto           → 02
     upload.proto          → 03
     chat.proto            → 04
-  load.js                 ← runtime proto loader (replaces generate_protos.sh)
-  01_unary.js … 06_interceptors.js
+  load.ts                 ← runtime proto loader (replaces generate_protos.sh)
+  01_unary.ts … 06_interceptors.ts
 ```
 
 ## Setup & running
 
 ```bash
 npm install        # from the repo root
-node 01_unary.js   # each file is self-contained: starts a server, runs a client, exits
+npx tsx 01_unary.ts   # each file is self-contained: starts a server, runs a client, exits
 ```
 
 | File | Pattern | What you'll learn |
 |------|---------|-------------------|
-| [01_unary.js](01_unary.js) | Unary | service/handlers, client stub, `callback` errors, deadlines |
-| [02_server_streaming.js](02_server_streaming.js) | Server stream | `call.write`/`call.end`, readable stream, `cancel`, deadline |
-| [03_client_streaming.js](03_client_streaming.js) | Client stream | writable stub, server accumulates, single response |
-| [04_bidirectional_streaming.js](04_bidirectional_streaming.js) | Bidi stream | duplex stream, concurrent read/write, client cancel |
-| [05_errors_and_metadata.js](05_errors_and_metadata.js) | Unary | `grpc.status`, `grpc.Metadata`, initial vs trailing metadata |
-| [06_interceptors.js](06_interceptors.js) | Unary | server auth + logging interceptors, client token injection |
+| [01_unary.ts](01_unary.ts) | Unary | service/handlers, client stub, `callback` errors, deadlines |
+| [02_server_streaming.ts](02_server_streaming.ts) | Server stream | `call.write`/`call.end`, readable stream, `cancel`, deadline |
+| [03_client_streaming.ts](03_client_streaming.ts) | Client stream | writable stub, server accumulates, single response |
+| [04_bidirectional_streaming.ts](04_bidirectional_streaming.ts) | Bidi stream | duplex stream, concurrent read/write, client cancel |
+| [05_errors_and_metadata.ts](05_errors_and_metadata.ts) | Unary | `grpc.status`, `grpc.Metadata`, initial vs trailing metadata |
+| [06_interceptors.ts](06_interceptors.ts) | Unary | server auth + logging interceptors, client token injection |
 

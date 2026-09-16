@@ -24,16 +24,55 @@
  *   Client reads:     "metadata" event (initial), "status" event (trailing)
  *
  * HOW TO RUN:
- *   node 05_errors_and_metadata.js
+ *   npx tsx 05_errors_and_metadata.ts
  */
 
-const grpc = require("@grpc/grpc-js");
-const { loadProto } = require("./load");
+import { fileURLToPath } from "node:url";
+
+import grpc from "@grpc/grpc-js";
+import { loadProto } from "./load.js";
+
+// A gRPC error carries a numeric status code and a details string. A caught
+// value is `unknown`, so this narrows to that shape before reading either.
+interface GrpcError {
+  code: number;
+  details?: string;
+}
+
+function asGrpcError(err: unknown): GrpcError {
+  if (typeof err === "object" && err !== null && "code" in err) {
+    return err as GrpcError;
+  }
+  return { code: grpc.status.UNKNOWN, details: String(err) };
+}
+
 
 const PORT = 50055;
 const { Greeter } = loadProto("greeter.proto");
 
-const KNOWN_USERS = {
+// The message shapes from greeter.proto. proto-loader parses the .proto at
+// runtime, so these are a claim about it rather than generated from it.
+interface HelloRequest {
+  name: string;
+}
+
+interface HelloReply {
+  message: string;
+}
+
+interface GetUserRequest {
+  userId: number;
+}
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// Keyed by an id that arrives over the wire, so Record is what allows the
+// lookup and forces the miss to be handled.
+const KNOWN_USERS: Record<number, User> = {
   1: { id: 1, name: "Alex", email: "alex@example.com" },
   2: { id: 2, name: "Dana", email: "dana@example.com" },
 };
@@ -43,9 +82,14 @@ const KNOWN_USERS = {
 // ---------------------------------------------------------------------------
 
 const handlers = {
-  SayHello(call, callback) {
-    const requestId = call.metadata.get("x-request-id")[0] || "unknown";
-    const lang = call.metadata.get("accept-language")[0] || "en";
+  SayHello(
+    call: grpc.ServerUnaryCall<HelloRequest, HelloReply>,
+    callback: grpc.sendUnaryData<HelloReply>
+  ) {
+    // Metadata.get returns (string | Buffer)[] — a gRPC header can carry binary
+    // values — so each read is converted before use.
+    const requestId = String(call.metadata.get("x-request-id")[0] ?? "unknown");
+    const lang = String(call.metadata.get("accept-language")[0] ?? "en");
     console.log(`  [server] SayHello  request-id=${requestId}  lang=${lang}`);
 
     if (!call.request.name) {
@@ -53,7 +97,8 @@ const handlers = {
       return;
     }
 
-    const greeting = { en: "Hello", es: "Hola", fr: "Bonjour" }[lang] || "Hello";
+    const greetings: Record<string, string> = { en: "Hello", es: "Hola", fr: "Bonjour" };
+    const greeting = greetings[lang] || "Hello";
 
     // Initial metadata is flushed to the client before the response body.
     const initial = new grpc.Metadata();
@@ -67,7 +112,10 @@ const handlers = {
     callback(null, { message: `${greeting}, ${call.request.name}!` }, trailing);
   },
 
-  GetUser(call, callback) {
+  GetUser(
+    call: grpc.ServerUnaryCall<GetUserRequest, User>,
+    callback: grpc.sendUnaryData<User>
+  ) {
     const userId = call.request.userId;
     if (userId <= 0) {
       callback({ code: grpc.status.INVALID_ARGUMENT, details: `user_id must be positive, got ${userId}` });
@@ -82,14 +130,14 @@ const handlers = {
   },
 };
 
-function makeServer() {
+function makeServer(): grpc.Server {
   const server = new grpc.Server();
   server.addService(Greeter.service, handlers);
   return server;
 }
 
-function startServer(server) {
-  return new Promise((resolve, reject) => {
+function startServer(server: grpc.Server): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     server.bindAsync(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure(), (err) =>
       err ? reject(err) : resolve()
     );
@@ -100,37 +148,77 @@ function startServer(server) {
 // Client helpers
 // ---------------------------------------------------------------------------
 
+// The stub's methods come from the .proto at runtime and are reached by name
+// here, so the client is indexed as a map of call functions. That is the shape
+// a dynamic loader really produces.
+type UnaryCall = (
+  request: unknown,
+  metadata: grpc.Metadata,
+  options: grpc.CallOptions,
+  cb: (err: grpc.ServiceError | null, response: never) => void
+) => grpc.ClientUnaryCall;
+
+type DynamicClient = grpc.Client & Record<string, UnaryCall>;
+
+interface CallOutcome<T> {
+  response: T;
+  initialMetadata?: grpc.Metadata;
+  call: grpc.ClientUnaryCall;
+}
+
 // Call a unary method capturing the response plus both metadata channels.
-function callWithMetadata(client, method, request, metadata, options = {}) {
-  return new Promise((resolve, reject) => {
-    let initialMetadata;
-    const call = client[method](request, metadata, options, (err, response) =>
-      err ? reject(err) : resolve({ response, initialMetadata, call })
+function callWithMetadata<T>(
+  client: DynamicClient,
+  method: string,
+  request: unknown,
+  metadata: grpc.Metadata,
+  options: grpc.CallOptions = {}
+): Promise<CallOutcome<T>> {
+  return new Promise<CallOutcome<T>>((resolve, reject) => {
+    // Assigned by the "metadata" listener below, so the annotation is explicit.
+    let initialMetadata: grpc.Metadata | undefined;
+    const fn = client[method];
+    if (!fn) {
+      reject(new Error(`No such method: ${method}`));
+      return;
+    }
+    // .call(client, ...) matters: a gRPC stub method reads `this` internally,
+    // so invoking the extracted function directly would lose the receiver.
+    const call = fn.call(client, request, metadata, options, (err, response) =>
+      err ? reject(err) : resolve({ response: response as T, initialMetadata, call })
     );
-    call.on("metadata", (md) => {
+    call.on("metadata", (md: grpc.Metadata) => {
       initialMetadata = md;
     });
   });
 }
 
-function printRpcError(e) {
-  console.log(`   RpcError  code=${grpc.status[e.code]}  details=${JSON.stringify(e.details)}`);
+function printRpcError(e: unknown): void {
+  console.log(`   RpcError  code=${grpc.status[asGrpcError(e).code]}  details=${JSON.stringify(asGrpcError(e).details)}`);
 }
 
 // ---------------------------------------------------------------------------
 // Demo
 // ---------------------------------------------------------------------------
 
-async function runClient() {
-  const client = new Greeter(`localhost:${PORT}`, grpc.credentials.createInsecure());
+async function runClient(): Promise<void> {
+  const client = new Greeter(
+    `localhost:${PORT}`,
+    grpc.credentials.createInsecure()
+  ) as unknown as DynamicClient;
 
   console.log("\n1. SayHello with client metadata (request-id, language):");
   const md = new grpc.Metadata();
   md.set("x-request-id", "abc-123");
   md.set("accept-language", "es"); // server will greet in Spanish
-  const { response, initialMetadata } = await callWithMetadata(client, "SayHello", { name: "Alex" }, md);
+  const { response, initialMetadata } = await callWithMetadata<HelloReply>(
+    client,
+    "SayHello",
+    { name: "Alex" },
+    md
+  );
   console.log(`   reply: ${JSON.stringify(response.message)}`);
-  console.log(`   initial metadata:  x-served-by=${initialMetadata.get("x-served-by")[0]}`);
+  console.log(`   initial metadata:  x-served-by=${initialMetadata?.get("x-served-by")[0]}`);
 
   console.log("\n2. SayHello with empty name (expect INVALID_ARGUMENT):");
   try {
@@ -163,13 +251,18 @@ async function runClient() {
   }
 
   console.log("\n6. GetUser (valid) after all the errors above:");
-  const { response: user } = await callWithMetadata(client, "GetUser", { userId: 1 }, new grpc.Metadata());
+  const { response: user } = await callWithMetadata<User>(
+    client,
+    "GetUser",
+    { userId: 1 },
+    new grpc.Metadata()
+  );
   console.log(`   id=${user.id}  name=${JSON.stringify(user.name)}`);
 
   client.close();
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log("CONCEPT 05 — Error Handling & Metadata");
   console.log("=".repeat(60));
@@ -183,11 +276,13 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
 }
 
-module.exports = { makeServer, PORT };
+export { makeServer, PORT };
