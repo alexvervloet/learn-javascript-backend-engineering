@@ -1,6 +1,7 @@
-const { PrefixTree } = require("./prefix_tree");
+import { describe, test, expect } from "@jest/globals";
+import { PrefixTree } from "./prefix_tree.js";
 
-function buildTree(words) {
+function buildTree(words: string[]): PrefixTree {
   const t = new PrefixTree();
   for (const w of words) {
     t.insert(w);
@@ -9,7 +10,7 @@ function buildTree(words) {
 }
 
 describe("exists", () => {
-  const cases = [
+  const cases: [string[], string, boolean][] = [
     [["apple", "app", "banana"], "apple", true],
     [["apple", "app", "banana"], "app", true],
     [["apple", "app", "banana"], "ap", false],
@@ -25,7 +26,7 @@ describe("exists", () => {
 });
 
 describe("wordsWithPrefix", () => {
-  const cases = [
+  const cases: [string[], string, string[]][] = [
     [["app", "apple", "banana", "band"], "app", ["app", "apple"]],
     [["app", "apple", "banana", "band"], "ban", ["banana", "band"]],
     [["app", "apple", "banana", "band"], "xyz", []],
@@ -40,7 +41,7 @@ describe("wordsWithPrefix", () => {
 });
 
 describe("findMatches", () => {
-  const cases = [
+  const cases: [string[], string, string[]][] = [
     [["apple", "banana"], "apple and banana", ["apple", "banana"]],
     [["apple", "banana"], "nothing here", []],
     [["app", "apple"], "the apple app", ["app", "apple"]],
@@ -53,7 +54,7 @@ describe("findMatches", () => {
 });
 
 describe("advancedFindMatches", () => {
-  const cases = [
+  const cases: [string[], string, Record<string, string>, string[]][] = [
     [["dang", "heck"], "d@ng h3ck", { "@": "a", "3": "e" }, ["d@ng", "h3ck"]],
     [["dang", "heck"], "dang heck", { "@": "a", "3": "e" }, ["dang", "heck"]],
     [["hello", "world"], "h3llo w0rld", { "3": "e", "0": "o" }, ["h3llo", "w0rld"]],
@@ -71,7 +72,7 @@ describe("advancedFindMatches", () => {
 });
 
 describe("longestCommonPrefix", () => {
-  const cases = [
+  const cases: [string[], string][] = [
     [["flower", "flow", "flight"], "fl"],
     [["apple", "application", "apply"], "appl"],
     [["interview", "interact", "integrate"], "inte"],
