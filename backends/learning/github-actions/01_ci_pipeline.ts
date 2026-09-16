@@ -74,4 +74,4 @@ install. Everything else (triggers, concurrency, matrix, artifacts) is generic.
 
 See workflows/ci.yml in this folder for a complete runnable example.
 */
-module.exports = {};
+export {};

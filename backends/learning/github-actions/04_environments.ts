@@ -58,4 +58,4 @@ between staging and production). Pass it via job `outputs:` + `needs:`.
   needs: [build, deploy-staging]
 Without needs:, jobs run in parallel; with it they form a DAG.
 */
-module.exports = {};
+export {};

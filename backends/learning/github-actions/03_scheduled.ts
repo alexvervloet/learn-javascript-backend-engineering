@@ -53,4 +53,4 @@ GitHub schedule: repo-bound jobs (tests, docs, dependency checks), no sub-minute
 precision needed. External scheduler (EventBridge, Render, fly.io): punctual,
 production infra, retries with backoff, runs even with no repo activity.
 */
-module.exports = {};
+export {};

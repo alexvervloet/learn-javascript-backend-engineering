@@ -59,4 +59,4 @@ title, markdown body, attached artifacts, and a "latest"/"pre-release" marker.
   4. attach an artifact: action-gh-release `files:` with a built tarball
      (e.g. `npm pack` output).
 */
-module.exports = {};
+export {};

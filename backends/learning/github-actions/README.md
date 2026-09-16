@@ -6,11 +6,11 @@ dispatch. This module is the Node version of the patterns every backend engineer
 
 | Concept | Example workflow | Notes |
 |---|---|---|
-| CI — lint + test matrix | `workflows/ci.yml` | `01_ci_pipeline.js` |
-| Releases from version tags | `workflows/release.yml` | `02_release.js` |
-| Scheduled + manual dispatch | `workflows/scheduled.yml` | `03_scheduled.js` |
-| Environments + deploy gates | (illustrative) | `04_environments.js` |
-| Reusable workflows | (illustrative) | `05_reusable_workflows.js` |
+| CI — lint + test matrix | `workflows/ci.yml` | `01_ci_pipeline.ts` |
+| Releases from version tags | `workflows/release.yml` | `02_release.ts` |
+| Scheduled + manual dispatch | `workflows/scheduled.yml` | `03_scheduled.ts` |
+| Environments + deploy gates | (illustrative) | `04_environments.ts` |
+| Reusable workflows | (illustrative) | `05_reusable_workflows.ts` |
 
 The example YAMLs live under `workflows/` here; copy them to `.github/workflows/`
 at the repo root to make them run. The notes are concept walk-throughs.

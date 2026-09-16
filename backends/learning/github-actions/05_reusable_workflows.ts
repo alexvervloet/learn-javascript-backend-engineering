@@ -71,4 +71,4 @@ matrix lives in the CALLER, not the callee.
   Reusable workflow: JOB-level reuse, own runner + checkout. Best for full job
     patterns (setup + test + report) and supports environments/secrets:inherit/outputs.
 */
-module.exports = {};
+export {};
