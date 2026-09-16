@@ -1,6 +1,14 @@
-const { Graph } = require("./graph");
+import { test, expect } from "@jest/globals";
+import { Graph } from "./graph.js";
 
-const cases = [
+type Edge = [number, number];
+
+const cases: {
+  numVertices: number;
+  edges: Edge[];
+  checks: Edge[];
+  expected: boolean[];
+}[] = [
   {
     numVertices: 3,
     edges: [[0, 1], [2, 0]],

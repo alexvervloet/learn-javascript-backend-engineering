@@ -1,6 +1,9 @@
-const { Graph } = require("./graph");
+import { describe, test, expect } from "@jest/globals";
+import { Graph } from "./graph.js";
 
-function buildGraph(edges) {
+type Edge = [number, number];
+
+function buildGraph(edges: Edge[]): Graph {
   const graph = new Graph();
   for (const [u, v] of edges) {
     graph.addEdge(u, v);
@@ -9,7 +12,7 @@ function buildGraph(edges) {
 }
 
 describe("edgeExists", () => {
-  const cases = [
+  const cases: { edges: Edge[]; checks: Edge[]; expected: boolean[] }[] = [
     {
       edges: [[0, 1], [2, 0]],
       checks: [[1, 0], [1, 2], [2, 0]],
@@ -35,7 +38,7 @@ describe("edgeExists", () => {
 });
 
 describe("breadthFirstSearch", () => {
-  const cases = [
+  const cases: { edges: Edge[]; start: number; expected: number[] }[] = [
     { edges: [[0, 1], [0, 2], [1, 3], [1, 4]], start: 0, expected: [0, 1, 2, 3, 4] },
     { edges: [[0, 1], [1, 2], [2, 3], [3, 0]], start: 0, expected: [0, 1, 3, 2] },
     { edges: [[0, 1], [1, 2], [2, 3]], start: 0, expected: [0, 1, 2, 3] },
@@ -48,7 +51,7 @@ describe("breadthFirstSearch", () => {
 });
 
 describe("depthFirstSearch", () => {
-  const cases = [
+  const cases: { edges: Edge[]; start: number; expected: number[] }[] = [
     { edges: [[0, 1], [0, 2], [1, 3], [1, 4]], start: 0, expected: [0, 1, 3, 4, 2] },
     { edges: [[0, 1], [1, 2], [2, 3], [3, 0]], start: 0, expected: [0, 1, 2, 3] },
     { edges: [[0, 1], [1, 2], [2, 3]], start: 0, expected: [0, 1, 2, 3] },
@@ -61,8 +64,8 @@ describe("depthFirstSearch", () => {
 });
 
 describe("adjacentNodes", () => {
-  const edges = [[0, 1], [0, 2], [1, 3]];
-  const cases = [
+  const edges: Edge[] = [[0, 1], [0, 2], [1, 3]];
+  const cases: { node: number; expected: number[] | null }[] = [
     { node: 0, expected: [1, 2] },
     { node: 1, expected: [0, 3] },
     { node: 3, expected: [1] },
@@ -74,13 +77,13 @@ describe("adjacentNodes", () => {
     if (expected === null) {
       expect(result).toBeNull();
     } else {
-      expect([...result].sort((a, b) => a - b)).toEqual(expected);
+      expect([...(result ?? [])].sort((a, b) => a - b)).toEqual(expected);
     }
   });
 });
 
 describe("unconnectedVertices", () => {
-  const cases = [
+  const cases: { edges: Edge[]; expected: number[] }[] = [
     { edges: [[0, 1], [1, 2]], expected: [] },
     { edges: [[0, 1], [2, 3], [4, 5]], expected: [] },
   ];
