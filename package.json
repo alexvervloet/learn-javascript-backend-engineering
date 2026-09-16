@@ -18,6 +18,7 @@
     "@swc/core": "^1.16.2",
     "@swc/jest": "^0.2.39",
     "@types/adm-zip": "^0.5.8",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
