@@ -3,7 +3,7 @@
 // ROLLBACK in beforeEach/afterEach — a transaction-rollback strategy on one
 // shared connection.
 
-const Database = require("better-sqlite3");
+import Database from "better-sqlite3";
 
 const db = new Database(":memory:");
 db.pragma("foreign_keys = ON");
@@ -23,4 +23,23 @@ db.exec(`
   );
 `);
 
-module.exports = { db };
+// The two row shapes this schema produces. better-sqlite3 cannot know what a
+// SQL string returns, so each prepare() in main.ts is handed one of these.
+// SQLite has no boolean, so `published` is the 0 or 1 actually stored.
+interface UserRow {
+  id: number;
+  username: string;
+  email: string;
+}
+
+interface PostRow {
+  id: number;
+  user_id: number;
+  title: string;
+  body: string;
+  published: 0 | 1;
+  created_at: string;
+}
+
+export { db };
+export type { UserRow, PostRow };

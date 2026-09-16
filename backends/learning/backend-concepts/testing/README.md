@@ -10,26 +10,26 @@ The three core decisions in any DB-backed API test suite:
    in-memory SQLite so the suite runs anywhere with no setup. (SQLite differs
    subtly from Postgres — fine for teaching, worth knowing in production.)
 2. **Isolation** — each test runs inside a `SAVEPOINT` rolled back afterwards
-   (`tests/helpers.js`), so every test starts clean. Fast, no truncation.
+   (`tests/helpers.ts`), so every test starts clean. Fast, no truncation.
 3. **Sharing the connection** — supertest drives the in-process Express app,
-   which imports the same `app/db.js`, so the app and tests see the same data.
+   which imports the same `app/db.ts`, so the app and tests see the same data.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `app/db.js` | In-memory SQLite + schema |
-| `app/schemas.js` | Zod request schemas |
-| `app/main.js` | Express app: auth middleware, ownership checks, CRUD |
-| `tests/helpers.js` | Savepoint isolation + `makeUser`/`makePost` factories |
-| `tests/auth.test.js` | 401 (no/unknown user) and 403 (not owner) |
-| `tests/posts.test.js` | CRUD happy paths + response *and* DB-state assertions |
-| `tests/validation.test.js` | 422 for bad bodies; documents Zod's boundaries |
+| `app/db.ts` | In-memory SQLite + schema |
+| `app/schemas.ts` | Zod request schemas |
+| `app/main.ts` | Express app: auth middleware, ownership checks, CRUD |
+| `tests/helpers.ts` | Savepoint isolation + `makeUser`/`makePost` factories |
+| `tests/auth.test.ts` | 401 (no/unknown user) and 403 (not owner) |
+| `tests/posts.test.ts` | CRUD happy paths + response *and* DB-state assertions |
+| `tests/validation.test.ts` | 422 for bad bodies; documents Zod's boundaries |
 
 ## Run
 
 ```bash
 npm test                                                  # whole repo
-npx jest backends/learning/backend-concepts/testing       # this suite
+npm test -- backends/learning/backend-concepts/testing       # this suite
 ```
 

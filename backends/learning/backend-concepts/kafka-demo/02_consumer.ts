@@ -13,11 +13,11 @@
  *   manual commit         — commit only after successful processing → at-least-once
  *                           delivery (worst case is reprocessing).
  *
- * Prerequisites:  docker compose up -d  +  node 01_producer.js
- * Run:            node 02_consumer.js
+ * Prerequisites:  docker compose up -d  +  npx tsx 01_producer.ts
+ * Run:            npx tsx 02_consumer.ts
  */
 
-const { kafka } = require("./kafka");
+import { kafka } from "./kafka.js";
 
 const TOPIC = "orders";
 const GROUP_ID = "demo-consumer-group";
@@ -31,7 +31,9 @@ async function main() {
   console.log(`Consuming topic='${TOPIC}'  group='${GROUP_ID}'\n--- Messages ---`);
 
   let count = 0;
-  let idleTimer;
+  // Assigned inside the message handler, so the annotation has to be written
+  // out. In Node, setTimeout returns a Timeout object, not a number.
+  let idleTimer: NodeJS.Timeout | undefined;
   const stop = async () => {
     await consumer.disconnect();
     console.log(`\nProcessed ${count} messages. Offsets committed — re-running with the`);

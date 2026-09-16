@@ -2,7 +2,7 @@
 // promise-based, with `kafka.producer()`, `kafka.consumer({ groupId })`, and
 // `kafka.admin()` factories off a single configured client.
 
-const { Kafka, logLevel } = require("kafkajs");
+import { Kafka, logLevel } from "kafkajs";
 
 const BOOTSTRAP = process.env.KAFKA_BROKER || "localhost:9092";
 
@@ -12,4 +12,4 @@ const kafka = new Kafka({
   logLevel: logLevel.NOTHING, // quiet the demo output
 });
 
-module.exports = { kafka, BOOTSTRAP };
+export { kafka, BOOTSTRAP };

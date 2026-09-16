@@ -13,14 +13,16 @@
  * worker is down, events queue in Kafka and process on restart; API and workers
  * scale independently; multiple groups can react to the same event.
  *
- * Run:  docker compose up -d  →  node 05_express.js  →  (another terminal) node worker.js
+ * Run:  docker compose up -d  →  npx tsx 05_express.ts  →  (another terminal) npx tsx worker.ts
  *   curl -sX POST localhost:8000/orders -H 'Content-Type: application/json' \
  *     -d '{"item":"keyboard","quantity":2,"customer_id":"cust-42"}'
  */
 
-const crypto = require("crypto");
-const express = require("express");
-const { kafka } = require("./kafka");
+import { fileURLToPath } from "node:url";
+
+import crypto from "node:crypto";
+import express from "express";
+import { kafka } from "./kafka.js";
 
 const ORDERS_TOPIC = "order.placed";
 
@@ -65,6 +67,8 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-if (require.main === module) start();
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) start();
 
-module.exports = { app };
+export { app };

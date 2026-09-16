@@ -11,16 +11,26 @@
  * restart. Make processing idempotent (e.g. check if order_id already exists
  * before charging) so reprocessing doesn't double-charge.
  *
- * Run:  node worker.js   (keep running while you POST to 05_express.js)
+ * Run:  npx tsx worker.ts   (keep running while you POST to 05_express.ts)
  */
 
-const { kafka } = require("./kafka");
+import { kafka } from "./kafka.js";
 
 const TOPIC = "order.placed";
 const GROUP_ID = "order-processor";
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function processOrder(event) {
+// The order event this worker consumes. A Kafka message body is bytes, so
+// this is the claim the JSON.parse below is making about them.
+interface OrderEvent {
+  order_id: string;
+  customer_id: string;
+  item: string;
+  quantity: number;
+  created_at: number;
+}
+
+async function processOrder(event: OrderEvent): Promise<void> {
   console.log(`\n  ┌── Processing order ${event.order_id} for ${event.customer_id}`);
   console.log(`  │   item=${event.item}  qty=${event.quantity}`);
 
@@ -46,10 +56,12 @@ async function main() {
     autoCommit: false,
     eachMessage: async ({ topic, partition, message }) => {
       try {
-        await processOrder(JSON.parse(message.value));
+        // message.value is Buffer | null — a Kafka record can have no body.
+        if (message.value === null) return;
+        await processOrder(JSON.parse(message.value.toString()) as OrderEvent);
       } catch (err) {
         // Production: route to a dead-letter topic instead of skipping.
-        console.log(`  ERROR processing message: ${err.message}  (skipping)`);
+        console.log(`  ERROR processing message: ${err instanceof Error ? err.message : String(err)}  (skipping)`);
       }
       await consumer.commitOffsets([{ topic, partition, offset: (Number(message.offset) + 1).toString() }]);
     },

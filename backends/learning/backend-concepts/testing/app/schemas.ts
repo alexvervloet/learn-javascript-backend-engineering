@@ -1,7 +1,7 @@
 // Request schemas with Zod. The route layer parses the body with these; a
 // failure becomes a 422.
 
-const { z } = require("zod");
+import { z } from "zod";
 
 const PostCreate = z.object({
   title: z.string().min(1).max(200),
@@ -16,4 +16,8 @@ const PostUpdate = z.object({
   published: z.boolean().nullish(),
 });
 
-module.exports = { PostCreate, PostUpdate };
+type PostCreateInput = z.infer<typeof PostCreate>;
+type PostUpdateInput = z.infer<typeof PostUpdate>;
+
+export { PostCreate, PostUpdate };
+export type { PostCreateInput, PostUpdateInput };

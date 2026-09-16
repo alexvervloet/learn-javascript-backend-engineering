@@ -10,36 +10,45 @@
  * `ws` doesn't do path params, so we parse req.url ourselves. Still one process —
  * production uses Redis pub/sub per "room:{name}" channel to span workers.
  *
- * Run:  node 03_rooms.js  →  open http://localhost:8000, connect tabs to
+ * Run:  npx tsx 03_rooms.ts  →  open http://localhost:8000, connect tabs to
  *   ws://localhost:8000/ws/general?username=alice and .../ws/dev?username=carol
  */
 
-const http = require("http");
-const path = require("path");
-const express = require("express");
-const { WebSocketServer, WebSocket } = require("ws");
+import { fileURLToPath } from "node:url";
+
+import http from "node:http";
+import path from "node:path";
+import express from "express";
+import { WebSocketServer, WebSocket } from "ws";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.use(express.static(path.join(__dirname, "static")));
-app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "static", "chat.html")));
+app.use(express.static(path.join(here, "static")));
+app.get("/", (_req, res) => res.sendFile(path.join(here, "static", "chat.html")));
 
 class RoomManager {
-  constructor() {
-    this.rooms = new Map(); // room → Set<ws>
+  rooms = new Map<string, Set<WebSocket>>(); // room → Set<ws>
+
+  join(room: string, ws: WebSocket): void {
+    // Map.get returns Set | undefined, so the set is captured once rather than
+    // fetched again on the next line and assumed present.
+    let members = this.rooms.get(room);
+    if (!members) {
+      members = new Set<WebSocket>();
+      this.rooms.set(room, members);
+    }
+    members.add(ws);
+    console.log(`  + [${room}] client joined   (room size: ${members.size})`);
   }
 
-  join(room, ws) {
-    if (!this.rooms.has(room)) this.rooms.set(room, new Set());
-    this.rooms.get(room).add(ws);
-    console.log(`  + [${room}] client joined   (room size: ${this.rooms.get(room).size})`);
-  }
-
-  leave(room, ws) {
+  leave(room: string, ws: WebSocket): void {
     this.rooms.get(room)?.delete(ws);
     console.log(`  - [${room}] client left   (room size: ${this.rooms.get(room)?.size ?? 0})`);
   }
 
-  broadcast(room, message) {
+  broadcast(room: string, message: string): void {
     for (const ws of this.rooms.get(room) ?? []) {
       if (ws.readyState === WebSocket.OPEN) ws.send(message);
       else this.leave(room, ws);
@@ -53,13 +62,13 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, socket, head) => {
-  const url = new URL(req.url, "http://localhost");
+  const url = new URL(req.url ?? "/", "http://localhost");
   const match = url.pathname.match(/^\/ws\/([^/]+)$/);
   if (!match) {
     socket.destroy();
     return;
   }
-  const room = decodeURIComponent(match[1]);
+  const room = decodeURIComponent(match[1] ?? "");
   const username = url.searchParams.get("username") || "anonymous";
   wss.handleUpgrade(req, socket, head, (ws) => {
     manager.join(room, ws);
@@ -72,8 +81,10 @@ server.on("upgrade", (req, socket, head) => {
   });
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   server.listen(8000, () => console.log("rooms server on http://localhost:8000"));
 }
 
-module.exports = { server, RoomManager };
+export { server, RoomManager };

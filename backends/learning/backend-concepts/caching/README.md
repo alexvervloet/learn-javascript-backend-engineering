@@ -17,20 +17,20 @@ invalidate.
 
 | File | What it teaches |
 |---|---|
-| `01_cache_aside.js` | Check cache, fall back to DB on a miss, write back; invalidate on write |
-| `02_write_through.js` | Write to cache and DB together — cache never cold |
-| `03_write_behind.js` | Write to cache, flush to DB in the background — fastest, lossy |
-| `04_invalidation.js` | TTL, event-driven, and versioned-key invalidation |
-| `05_stampede.js` | The thundering-herd problem and a Redis-lock fix |
+| `01_cache_aside.ts` | Check cache, fall back to DB on a miss, write back; invalidate on write |
+| `02_write_through.ts` | Write to cache and DB together — cache never cold |
+| `03_write_behind.ts` | Write to cache, flush to DB in the background — fastest, lossy |
+| `04_invalidation.ts` | TTL, event-driven, and versioned-key invalidation |
+| `05_stampede.ts` | The thundering-herd problem and a Redis-lock fix |
 
-`db.js` is the SQLite source of truth; `cache.js` holds the ioredis client + key/serialisation helpers.
+`db.ts` is the SQLite source of truth; `cache.ts` holds the ioredis client + key/serialisation helpers.
 
 ## How to run
 
 ```bash
 docker compose up -d          # Redis on :6379
 npm install                   # from the repo root
-node 01_cache_aside.js
-node 05_stampede.js
+npx tsx 01_cache_aside.ts
+npx tsx 05_stampede.ts
 ```
 

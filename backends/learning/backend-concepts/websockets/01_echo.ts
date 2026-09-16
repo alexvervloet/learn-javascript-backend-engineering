@@ -12,19 +12,24 @@
  *
  * Lifecycle: "connection" event → "message" handler → "close" event.
  *
- * Run:  node 01_echo.js
+ * Run:  npx tsx 01_echo.ts
  *   Open http://localhost:8000 and connect to ws://localhost:8000/ws,
  *   or:  wscat -c ws://localhost:8000/ws
  */
 
-const http = require("http");
-const path = require("path");
-const express = require("express");
-const { WebSocketServer } = require("ws");
+import { fileURLToPath } from "node:url";
+
+import http from "node:http";
+import path from "node:path";
+import express from "express";
+import { WebSocketServer } from "ws";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.use(express.static(path.join(__dirname, "static")));
-app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "static", "chat.html")));
+app.use(express.static(path.join(here, "static")));
+app.get("/", (_req, res) => res.sendFile(path.join(here, "static", "chat.html")));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
@@ -41,8 +46,10 @@ wss.on("connection", (ws, req) => {
   ws.on("close", () => console.log("Client disconnected"));
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   server.listen(8000, () => console.log("echo server on http://localhost:8000 (ws://localhost:8000/ws)"));
 }
 
-module.exports = { server };
+export { server };

@@ -1,5 +1,5 @@
 /**
- * validation.test.js — input validation and 422 responses
+ * validation.test.ts — input validation and 422 responses
  * =========================================================
  * The route layer parses each body with Zod before the handler runs; a schema
  * violation returns 422. These tests pin the contract: required fields, length
@@ -11,13 +11,14 @@
  *   PostUpdate { title?: string 1..200, body?: string, published?: boolean }
  */
 
-const request = require("supertest");
-const { app } = require("../app/main");
-const { installIsolation, makeUser, makePost } = require("./helpers");
+import { describe, test, expect } from "@jest/globals";
+import request from "supertest";
+import { app } from "../app/main.js";
+import { installIsolation, makeUser, makePost } from "./helpers.js";
 
 installIsolation();
 
-const auth = (id) => ({ "X-User-Id": String(id) });
+const auth = (id: number): Record<string, string> => ({ "X-User-Id": String(id) });
 
 describe("POST /posts validation", () => {
   test("missing title → 422", async () => {

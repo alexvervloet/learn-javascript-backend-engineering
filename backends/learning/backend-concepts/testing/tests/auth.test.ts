@@ -1,5 +1,5 @@
 /**
- * auth.test.js — authentication and ownership enforcement
+ * auth.test.ts — authentication and ownership enforcement
  * =========================================================
  * Auth tests answer a distinct question — "does the app correctly gate access?"
  * — separate from "does the business logic work?".
@@ -7,12 +7,13 @@
  *   401 Unauthorized → no identity, or an invalid one
  *   403 Forbidden    → valid identity, but you don't own this resource
  *
- * (A missing auth header here is 401, not 422 — see the note in app/main.js.)
+ * (A missing auth header here is 401, not 422 — see the note in app/main.ts.)
  */
 
-const request = require("supertest");
-const { app } = require("../app/main");
-const { installIsolation, makeUser, makePost } = require("./helpers");
+import { describe, test, expect } from "@jest/globals";
+import request from "supertest";
+import { app } from "../app/main.js";
+import { installIsolation, makeUser, makePost } from "./helpers.js";
 
 installIsolation();
 

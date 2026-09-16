@@ -11,10 +11,10 @@
  *   a message `key` pins all of its messages to the same partition (ordering)
  *
  * Prerequisites:  docker compose up -d  (wait ~10s)
- * Run:            node 01_producer.js
+ * Run:            npx tsx 01_producer.ts
  */
 
-const { kafka } = require("./kafka");
+import { kafka } from "./kafka.js";
 
 const TOPIC = "orders";
 
@@ -47,7 +47,7 @@ async function main() {
   console.log(`  sent ${batch.length} messages in one batch`);
 
   await producer.disconnect();
-  console.log(`\nAll messages sent to topic '${TOPIC}'. Run 02_consumer.js to read them.`);
+  console.log(`\nAll messages sent to topic '${TOPIC}'. Run 02_consumer.ts to read them.`);
 }
 
 main().catch((err) => {

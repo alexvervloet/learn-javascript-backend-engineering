@@ -14,10 +14,10 @@
  * supports at most 3 working consumers per group.
  *
  * Prerequisites:  docker compose up -d
- * Run:            node 04_partitions.js
+ * Run:            npx tsx 04_partitions.ts
  */
 
-const { kafka } = require("./kafka");
+import { kafka } from "./kafka.js";
 
 const TOPIC = "user-events";
 const NUM_PARTITIONS = 3;
@@ -50,8 +50,10 @@ async function main() {
     ["user-A", { event: "checkout", user: "A" }],
     ["user-C", { event: "add_to_cart", user: "C" }],
   ];
-  const byKey = new Map();
-  for (const [key, value] of events) {
+  const byKey = new Map<string, Set<number>>();
+  // events is inferred as (string | object)[][] without the annotation, which
+  // is why the destructured key and value below need it spelled out.
+  for (const [key, value] of events as [string, Record<string, string>][]) {
     const [meta] = await producer.send({ topic: TOPIC, messages: [{ key, value: JSON.stringify(value) }] });
     console.log(`  key=${key.padEnd(8)}  → partition=${meta.partition}  offset=${meta.baseOffset}`);
     byKey.set(key, (byKey.get(key) ?? new Set()).add(meta.partition));

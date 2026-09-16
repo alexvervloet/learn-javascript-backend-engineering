@@ -5,17 +5,17 @@ top, using [`jsonwebtoken`](https://github.com/auth0/node-jsonwebtoken) + Expres
 
 | File | What it teaches |
 |---|---|
-| `01_jwt_basics.js` | Anatomy of a JWT; sign/verify; tampered, expired, wrong-secret rejection |
-| `02_auth_flow.js` | Login → token → `Authorization: Bearer`; auth middleware |
-| `03_rbac.js` | `requireRole(min)` middleware factory; 401 vs 403 |
-| `04_refresh_tokens.js` | Short access + long refresh tokens, rotation, server-side revocation |
+| `01_jwt_basics.ts` | Anatomy of a JWT; sign/verify; tampered, expired, wrong-secret rejection |
+| `02_auth_flow.ts` | Login → token → `Authorization: Bearer`; auth middleware |
+| `03_rbac.ts` | `requireRole(min)` middleware factory; 401 vs 403 |
+| `04_refresh_tokens.ts` | Short access + long refresh tokens, rotation, server-side revocation |
 
 ## Run
 
 ```bash
 npm install            # from the repo root (jsonwebtoken, express)
-node 01_jwt_basics.js  # standalone demo
-node 02_auth_flow.js   # starts an Express server on :8000
+npx tsx 01_jwt_basics.ts  # standalone demo
+npx tsx 02_auth_flow.ts   # starts an Express server on :8000
 ```
 
 ```bash

@@ -11,34 +11,39 @@
  * so production backs broadcast with Redis pub/sub so a message reaches clients
  * on any process.
  *
- * Run:  node 02_broadcast.js  →  open http://localhost:8000 in two tabs
+ * Run:  npx tsx 02_broadcast.ts  →  open http://localhost:8000 in two tabs
  */
 
-const http = require("http");
-const path = require("path");
-const express = require("express");
-const { WebSocketServer, WebSocket } = require("ws");
+import { fileURLToPath } from "node:url";
+
+import http from "node:http";
+import path from "node:path";
+import express from "express";
+import { WebSocketServer, WebSocket } from "ws";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.use(express.static(path.join(__dirname, "static")));
-app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "static", "chat.html")));
+app.use(express.static(path.join(here, "static")));
+app.get("/", (_req, res) => res.sendFile(path.join(here, "static", "chat.html")));
 
 class ConnectionManager {
-  constructor() {
-    this.active = new Set();
-  }
+  // Set<WebSocket> rather than a bare Set: broadcast() reaches for readyState
+  // and send(), and the element type is what makes those checkable.
+  active = new Set<WebSocket>();
 
-  add(ws) {
+  add(ws: WebSocket): void {
     this.active.add(ws);
     console.log(`  + client connected   (total: ${this.active.size})`);
   }
 
-  remove(ws) {
+  remove(ws: WebSocket): void {
     this.active.delete(ws);
     console.log(`  - client disconnected  (total: ${this.active.size})`);
   }
 
-  broadcast(message) {
+  broadcast(message: string): void {
     for (const ws of this.active) {
       if (ws.readyState === WebSocket.OPEN) ws.send(message);
       else this.remove(ws); // stale socket found mid-broadcast
@@ -60,8 +65,10 @@ wss.on("connection", (ws) => {
   ws.on("close", () => manager.remove(ws));
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   server.listen(8000, () => console.log("broadcast server on http://localhost:8000"));
 }
 
-module.exports = { server, ConnectionManager };
+export { server, ConnectionManager };

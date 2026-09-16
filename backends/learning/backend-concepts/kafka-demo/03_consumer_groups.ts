@@ -13,16 +13,21 @@
  * We run consumers concurrently (async) in one process to show both patterns.
  *
  * Prerequisites:  docker compose up -d
- * Run:            node 03_consumer_groups.js
+ * Run:            npx tsx 03_consumer_groups.ts
  */
 
-const { kafka } = require("./kafka");
+import { kafka } from "./kafka.js";
 
 const TOPIC = "events";
 
 // Consume up to `max` messages into `results`, then disconnect.
-function runConsumer(name, groupId, results, max) {
-  return new Promise((resolve, reject) => {
+function runConsumer(
+  name: string,
+  groupId: string,
+  results: string[],
+  max: number
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     const consumer = kafka.consumer({ groupId });
     consumer
       .connect()
@@ -30,7 +35,9 @@ function runConsumer(name, groupId, results, max) {
       .then(() =>
         consumer.run({
           eachMessage: async ({ partition, message }) => {
-            results.push(`[${name}] partition=${partition} offset=${message.offset}  ${message.value}`);
+            results.push(
+              `[${name}] partition=${partition} offset=${message.offset}  ${String(message.value)}`
+            );
             if (results.length >= max) {
               await consumer.disconnect();
               resolve();
@@ -47,7 +54,7 @@ function runConsumer(name, groupId, results, max) {
   });
 }
 
-async function seed(n) {
+async function seed(n: number): Promise<void> {
   const producer = kafka.producer();
   await producer.connect();
   const messages = Array.from({ length: n }, (_, i) => ({ value: JSON.stringify({ event: "order", id: i }) }));
@@ -60,8 +67,8 @@ async function demoWorkQueue() {
   console.log("    Two consumers compete; each message is processed once.\n");
   await seed(10);
 
-  const a = [];
-  const b = [];
+  const a: string[] = [];
+  const b: string[] = [];
   await Promise.all([
     runConsumer("Worker-A", "work-queue-group", a, 10),
     runConsumer("Worker-B", "work-queue-group", b, 10),
@@ -76,8 +83,8 @@ async function demoFanout() {
   console.log("\n=== FAN-OUT: different groupIds ===");
   console.log("    Two independent services each receive every message.\n");
 
-  const email = [];
-  const analytics = [];
+  const email: string[] = [];
+  const analytics: string[] = [];
   await Promise.all([
     runConsumer("EmailService", "email-service", email, 10),
     runConsumer("Analytics", "analytics-service", analytics, 10),

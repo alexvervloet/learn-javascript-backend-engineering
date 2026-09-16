@@ -1,5 +1,5 @@
 /**
- * posts.test.js — CRUD endpoint tests
+ * posts.test.ts — CRUD endpoint tests
  * =====================================
  * Happy paths for every route plus route-level error cases. Two verification
  * styles, both idiomatic for DB-backed API tests:
@@ -8,13 +8,18 @@
  *      actually persisted (catches "returned 201 but forgot to commit" bugs).
  */
 
-const request = require("supertest");
-const { app } = require("../app/main");
-const { db, installIsolation, makeUser, makePost } = require("./helpers");
+import { describe, test, expect } from "@jest/globals";
+import request from "supertest";
+import { app } from "../app/main.js";
+import { db, installIsolation, makeUser, makePost } from "./helpers.js";
+import type { PostRow } from "../app/db.js";
 
 installIsolation();
 
-const getPost = (id) => db.prepare("SELECT * FROM posts WHERE id = ?").get(id);
+// Nullable on purpose: one test asserts a deleted post is gone, so the
+// callers below reach for fields with ?.
+const getPost = (id: number): PostRow | undefined =>
+  db.prepare<[number], PostRow>("SELECT * FROM posts WHERE id = ?").get(id);
 
 describe("GET /posts", () => {
   test("empty list", async () => {
@@ -27,7 +32,7 @@ describe("GET /posts", () => {
     const user = makeUser();
     makePost(user, { title: "Published", published: true });
     makePost(user, { title: "Draft", published: false });
-    const titles = (await request(app).get("/posts")).body.map((p) => p.title);
+    const titles = (await request(app).get("/posts")).body.map((p: PostRow) => p.title);
     expect(titles).toContain("Published");
     expect(titles).not.toContain("Draft");
   });
@@ -47,7 +52,7 @@ describe("GET /posts", () => {
     makePost(user, { title: "First" });
     makePost(user, { title: "Second" });
     makePost(user, { title: "Third" });
-    const titles = (await request(app).get("/posts")).body.map((p) => p.title);
+    const titles = (await request(app).get("/posts")).body.map((p: PostRow) => p.title);
     expect(titles).toEqual(["Third", "Second", "First"]);
   });
 });
@@ -78,8 +83,8 @@ describe("POST /posts", () => {
 
     const post = getPost(res.body.id);
     expect(post).toBeDefined();
-    expect(post.title).toBe("New Post");
-    expect(post.user_id).toBe(user.id);
+    expect(post?.title).toBe("New Post");
+    expect(post?.user_id).toBe(user.id);
   });
 
   test("post belongs to the authenticated user", async () => {
@@ -87,8 +92,8 @@ describe("POST /posts", () => {
     const bob = makeUser({ username: "bob" });
     const res = await request(app).post("/posts").set("X-User-Id", String(alice.id)).send({ title: "Alice's", body: "..." });
     const post = getPost(res.body.id);
-    expect(post.user_id).toBe(alice.id);
-    expect(post.user_id).not.toBe(bob.id);
+    expect(post?.user_id).toBe(alice.id);
+    expect(post?.user_id).not.toBe(bob.id);
   });
 });
 
@@ -99,14 +104,14 @@ describe("PATCH /posts/:id", () => {
     const res = await request(app).patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ title: "New title" });
     expect(res.status).toBe(200);
     expect(res.body.title).toBe("New title");
-    expect(getPost(post.id).title).toBe("New title");
+    expect(getPost(post.id)?.title).toBe("New title");
   });
 
   test("updates the published flag", async () => {
     const user = makeUser();
     const post = makePost(user, { published: false });
     await request(app).patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ published: true });
-    expect(Boolean(getPost(post.id).published)).toBe(true);
+    expect(Boolean(getPost(post.id)?.published)).toBe(true);
   });
 
   test("partial update leaves other fields intact", async () => {
@@ -114,8 +119,8 @@ describe("PATCH /posts/:id", () => {
     const post = makePost(user, { title: "Keep me", body: "Keep this too." });
     await request(app).patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ published: true });
     const updated = getPost(post.id);
-    expect(updated.title).toBe("Keep me");
-    expect(updated.body).toBe("Keep this too.");
+    expect(updated?.title).toBe("Keep me");
+    expect(updated?.body).toBe("Keep this too.");
   });
 
   test("404 for a missing post", async () => {
@@ -138,7 +143,7 @@ describe("DELETE /posts/:id", () => {
     const user = makeUser();
     const post = makePost(user, { title: "Gone soon" });
     await request(app).delete(`/posts/${post.id}`).set("X-User-Id", String(user.id));
-    const titles = (await request(app).get("/posts")).body.map((p) => p.title);
+    const titles = (await request(app).get("/posts")).body.map((p: PostRow) => p.title);
     expect(titles).not.toContain("Gone soon");
   });
 

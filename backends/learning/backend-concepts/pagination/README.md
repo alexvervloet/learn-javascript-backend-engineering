@@ -5,9 +5,9 @@ Offset vs cursor pagination, side by side, on a seeded SQLite dataset
 
 | File | What it is |
 |---|---|
-| `db.js` | SQLite connection + schema (`articles`, `comments`) |
-| `seed.js` | Inserts 50 articles + comments |
-| `main.js` | `/articles/offset` and `/articles/cursor` endpoints |
+| `db.ts` | SQLite connection + schema (`articles`, `comments`) |
+| `seed.ts` | Inserts 50 articles + comments |
+| `main.ts` | `/articles/offset` and `/articles/cursor` endpoints |
 
 ## Offset vs cursor
 
@@ -22,8 +22,8 @@ Offset vs cursor pagination, side by side, on a seeded SQLite dataset
 
 ```bash
 npm install            # from the repo root (express, better-sqlite3)
-node seed.js           # once — creates articles.db
-node main.js           # http://localhost:8000
+npx tsx seed.ts           # once — creates articles.db
+npx tsx main.ts           # http://localhost:8000
 curl 'localhost:8000/articles/offset?page=2&limit=5'
 curl 'localhost:8000/articles/cursor?limit=5'
 ```

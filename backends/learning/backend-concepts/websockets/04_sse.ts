@@ -11,20 +11,26 @@
  * Wire format: `data: <text>\n\n` per event; `event: <name>\n` adds a named type.
  * In Express you set the headers and `res.write()` chunks (no framework helper).
  *
- * Run:  node 04_sse.js
+ * Run:  npx tsx 04_sse.ts
  *   curl -N localhost:8000/stream/temperature
  *   curl -N localhost:8000/stream/deploy-log
  *   or open http://localhost:8000
  */
 
-const path = require("path");
-const express = require("express");
+import { fileURLToPath } from "node:url";
+
+import path from "node:path";
+import express from "express";
+import type { Response } from "express";
+
+// ESM has no __dirname. This is the equivalent.
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.use(express.static(path.join(__dirname, "static")));
-app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "static", "sse.html")));
+app.use(express.static(path.join(here, "static")));
+app.get("/", (_req, res) => res.sendFile(path.join(here, "static", "sse.html")));
 
-function sseHeaders(res) {
+function sseHeaders(res: Response): void {
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -67,8 +73,10 @@ app.get("/stream/deploy-log", async (req, res) => {
   res.end();
 });
 
-if (require.main === module) {
+// ESM has no require.main === module. Comparing the script Node was handed
+// against this module's own path is the equivalent.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(8000, () => console.log("SSE server on http://localhost:8000"));
 }
 
-module.exports = { app };
+export { app };
