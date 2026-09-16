@@ -23,7 +23,7 @@ function is slow while Docker pulls the `nodejs20.x` runtime image.
 
 ## Packaging
 
-Lambda wants a zip. [zip.js](zip.js) builds one in memory with `adm-zip`
+Lambda wants a zip. [zip.ts](zip.ts) builds one in memory with `adm-zip`
 (`zipFile` for a file on disk, `zipCode` for an inline string). The handlers live
 in `functions/<name>/handler.js`.
 

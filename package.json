@@ -1,7 +1,7 @@
 {
   "name": "Practice-Backends",
   "version": "1.0.0",
-  "description": "A repository for learning Backend Engineering with Javascript",
+  "description": "A repository for learning Backend Engineering with TypeScript",
   "type": "module",
   "main": "index.ts",
   "repository": "https://github.com/alexvervloet/learn-javascript-backend-engineering.git",

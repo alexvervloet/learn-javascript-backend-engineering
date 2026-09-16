@@ -33,7 +33,7 @@ and match.
 
 Compare two vectors with **cosine similarity** — the cosine of the angle between
 them, from -1 (opposite) to 1 (identical direction). Closer to 1 = more similar in
-meaning. These files compute it in plain JavaScript so the math is visible (no
+meaning. These files compute it by hand so the math is visible (no
 library):
 
 ```

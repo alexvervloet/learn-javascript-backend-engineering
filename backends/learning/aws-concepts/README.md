@@ -24,7 +24,7 @@ const s3 = new S3Client({ endpoint, region, credentials, forcePathStyle: true })
 await s3.send(new CreateBucketCommand({ Bucket: "my-bucket" }));
 ```
 
-Shared client config lives in [helpers.js](helpers.js). The AWS SDK v3 is
+Shared client config lives in [helpers.ts](helpers.ts). The AWS SDK v3 is
 command-oriented: you import each operation as a `Command` and `send` it, so
 only the calls you actually use get bundled.
 

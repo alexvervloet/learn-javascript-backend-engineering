@@ -28,4 +28,4 @@ npm install
 npm run dev
 ```
 
-App runs at http://localhost:5173. Start the backend (`node advanced/server.js`, http://localhost:8001) so the playground has an API to call.
+App runs at http://localhost:5173. Start the backend (`npx tsx advanced/server.ts`, http://localhost:8001) so the playground has an API to call.

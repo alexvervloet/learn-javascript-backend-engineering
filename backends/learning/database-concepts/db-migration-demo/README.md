@@ -19,8 +19,8 @@ A small library database — `authors` and `books` — that evolves through sche
 | File | Purpose |
 |---|---|
 | `knexfile.ts` | Knex config (SQLite via better-sqlite3) |
-| `migrations/…create_authors_and_books.js` | Initial schema |
-| `migrations/…add_author_email.js` | Add a column + backfill data |
+| `migrations/…create_authors_and_books.ts` | Initial schema |
+| `migrations/…add_author_email.ts` | Add a column + backfill data |
 | `seeds/initial.ts` | Sample data |
 | `migrate_data.ts` | One-off SQLite → Postgres data transfer |
 
