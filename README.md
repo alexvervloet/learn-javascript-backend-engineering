@@ -65,6 +65,11 @@ Each module's README states exactly what it needs and how to start it.
 
 ## Setup
 
+Node 22.18 or newer (`.nvmrc` pins it). That floor is not arbitrary: `jest.config.ts`
+is TypeScript, and Jest only loads it without an extra transpiler on versions where
+Node strips types natively, which became the default in 22.18. On anything older
+the suite dies before the first test with "'ts-node' is required".
+
 ```bash
 npm install                 # all backend + learning dependencies, from the repo root
 npm run prisma:generate     # build the per-project Prisma clients
