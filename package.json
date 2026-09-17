@@ -7,6 +7,9 @@
   "repository": "https://github.com/alexvervloet/learn-javascript-backend-engineering.git",
   "author": "Alex Vervloet <alex.vervloet@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.18"
+  },
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
