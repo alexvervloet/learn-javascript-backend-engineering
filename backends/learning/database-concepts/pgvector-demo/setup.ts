@@ -29,7 +29,7 @@ async function main() {
       id SERIAL PRIMARY KEY,
       user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       body TEXT NOT NULL,
-      embedding vector(${EMBEDDING_DIM}),   -- NULL until embed_comments.js runs
+      embedding vector(${EMBEDDING_DIM}),   -- NULL until embed_comments.ts runs
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);

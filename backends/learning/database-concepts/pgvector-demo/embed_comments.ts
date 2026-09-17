@@ -37,7 +37,7 @@ async function getEmbedding(text: string, model: string): Promise<number[]> {
   if (vector.length !== EMBEDDING_DIM) {
     throw new Error(
       `Model '${model}' returned ${vector.length}-dim vectors, but the column expects ${EMBEDDING_DIM}. ` +
-        "Change the vector(N) size in setup.js and re-run setup + embed."
+        "Change the vector(N) size in setup.ts and re-run setup + embed."
     );
   }
   return vector;

@@ -1,4 +1,4 @@
-// Seed users and comments (no embeddings yet). Run: npx tsx seed.ts (after setup.js)
+// Seed users and comments (no embeddings yet). Run: npx tsx seed.ts (after setup.ts)
 
 import { pool } from "./db.js";
 

@@ -10,7 +10,7 @@
  * No over-fetching, no under-fetching, multiple resources in one request.
  *
  * --- SDL (Schema Definition Language) ---
- * In schema-first JS you write the SDL directly (see schema.js):
+ * In schema-first JS you write the SDL directly (see schema.ts):
  *   type Book { id: ID!  title: String!  description: String }
  *   type Query { books: [Book!]!  book(id: ID!): Book }
  *   type Mutation { addBook(input: AddBookInput!): Book! }

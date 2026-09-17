@@ -10,7 +10,7 @@
  *   REST:  POST /users {"name":"Alex"} → 200 {"id":1,"name":"Alex"}
  *   gRPC:  SayHello({name:"Alex"})      → {message:"Hello, Alex!"}
  *
- * In Node we load greeter.proto at runtime (see load.js — no codegen). That
+ * In Node we load greeter.proto at runtime (see load.ts — no codegen). That
  * gives us:
  *   proto.Greeter           — client constructor + `.service` definition
  *   proto.Greeter.service   — pass to server.addService with your handlers

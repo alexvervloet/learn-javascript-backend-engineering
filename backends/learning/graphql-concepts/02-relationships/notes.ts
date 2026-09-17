@@ -25,7 +25,7 @@
  * into ONE getAuthorsByIds([...]) call. 6 → 1.
  *
  * --- MEASURING N+1 ---
- * data.js increments QueryCounter on every getAuthor/getPostsByAuthor call:
+ * data.ts increments QueryCounter on every getAuthor/getPostsByAuthor call:
  *   db.reset();
  *   graphqlSync({ schema, source: "{ posts { author { name } } }" });
  *   expect(db.QueryCounter.calls).toBe(6);   // N+1

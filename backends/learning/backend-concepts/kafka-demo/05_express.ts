@@ -7,7 +7,7 @@
  *   Browser ──POST /orders──▶ Express ──▶ Kafka topic "order.placed"
  *                             returns 202                  │
  *                                                          ▼
- *                                                       worker.js (separate process)
+ *                                                       worker.ts (separate process)
  *
  * Why decouple? The request returns fast regardless of processing time; if the
  * worker is down, events queue in Kafka and process on restart; API and workers

@@ -1,4 +1,4 @@
-// Seed the articles.db with sample data. Run once before main.js:  npx tsx seed.ts
+// Seed the articles.db with sample data. Run once before main.ts:  npx tsx seed.ts
 
 import { db } from "./db.js";
 
