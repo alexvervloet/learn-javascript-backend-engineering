@@ -12,12 +12,13 @@ implementation detail you can swap.
 ## ⚠️ These cost real money
 
 Unlike the Redis/Postgres modules, there's no `docker run` — every script hits a
-paid API. Costs are small (cents) but real. To keep spend low while learning, set
-the cheap models in your `.env` (see [.env.example](.env.example)):
+paid API. Costs are small (cents) but real. Every script already defaults to the
+cheap tier, and `.env.example` sets the same two values explicitly so they are
+easy to find and change (see [.env.example](.env.example)):
 
 ```
 ANTHROPIC_MODEL=claude-haiku-4-5
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4-mini
 ```
 
 ## Modules

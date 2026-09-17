@@ -61,7 +61,7 @@ type VerdictResult = z.infer<typeof Verdict>;
 async function judgeAnthropic(answer: string): Promise<VerdictResult | null> {
   const client = new Anthropic();
   const r = await client.messages.parse({
-    model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+    model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
     max_tokens: 512,
     messages: [{ role: "user", content: judgePrompt(answer) }],
     output_config: { format: zodOutputFormat(Verdict) },
@@ -72,7 +72,7 @@ async function judgeAnthropic(answer: string): Promise<VerdictResult | null> {
 async function judgeOpenAI(answer: string): Promise<VerdictResult | null> {
   const client = new OpenAI();
   const r = await client.chat.completions.parse({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     max_tokens: 512,
     messages: [{ role: "user", content: judgePrompt(answer) }],
     response_format: zodResponseFormat(Verdict, "verdict"),

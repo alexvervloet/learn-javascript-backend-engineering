@@ -35,7 +35,7 @@ async function getText(provider: string) {
   if (provider === "anthropic") {
     const client = new Anthropic();
     const r = await client.messages.create({
-      model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+      model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
       max_tokens: 256,
       messages: [{ role: "user", content: PROMPT }],
     });
@@ -44,7 +44,7 @@ async function getText(provider: string) {
 
   const client = new OpenAI();
   const r = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     max_tokens: 256,
     // OpenAI's "JSON mode": guarantees syntactically valid JSON (but not a
     // specific shape — that's what schema enforcement in 02 adds).

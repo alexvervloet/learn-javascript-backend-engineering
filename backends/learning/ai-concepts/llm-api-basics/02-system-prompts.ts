@@ -32,7 +32,7 @@ const TURN_2 = "Could it ever slow things down?"; // 'it' only makes sense if tu
 
 async function runAnthropic(): Promise<void> {
   const client = new Anthropic();
-  const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
+  const model = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
 
   // Anthropic: system is a TOP-LEVEL parameter, not a message.
   // Anthropic and OpenAI each define their own message-parameter type, and the
@@ -53,7 +53,7 @@ async function runAnthropic(): Promise<void> {
 
 async function runOpenAI(): Promise<void> {
   const client = new OpenAI();
-  const model = process.env.OPENAI_MODEL || "gpt-4o";
+  const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
   // OpenAI: system is the FIRST message in the list (role="system").
   const history: OpenAI.Chat.ChatCompletionMessageParam[] = [

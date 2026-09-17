@@ -48,7 +48,7 @@ async function chat(provider: string, system: string, user: string) {
   if (provider === "anthropic") {
     const client = new Anthropic();
     const r = await client.messages.create({
-      model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+      model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
       max_tokens: 64,
       system,
       messages: [{ role: "user", content: user }],
@@ -58,7 +58,7 @@ async function chat(provider: string, system: string, user: string) {
 
   const client = new OpenAI();
   const r = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     max_tokens: 64,
     messages: [
       { role: "system", content: system },

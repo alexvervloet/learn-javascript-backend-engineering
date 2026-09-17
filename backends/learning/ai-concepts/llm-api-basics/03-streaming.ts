@@ -33,7 +33,7 @@ const PROMPT = "Explain how a TCP handshake works, in about 4 sentences.";
 async function streamAnthropic() {
   const client = new Anthropic();
   const stream = client.messages.stream({
-    model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+    model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
     max_tokens: 1024,
     messages: [{ role: "user", content: PROMPT }],
   });
@@ -46,7 +46,7 @@ async function streamAnthropic() {
 async function streamOpenAI() {
   const client = new OpenAI();
   const stream = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     messages: [{ role: "user", content: PROMPT }],
     stream: true,
   });

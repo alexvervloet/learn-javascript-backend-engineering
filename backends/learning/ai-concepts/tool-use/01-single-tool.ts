@@ -38,7 +38,7 @@ const QUESTION = "What's the weather in Lisbon? Reply in one sentence.";
 
 async function runAnthropic(): Promise<void> {
   const client = new Anthropic();
-  const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
+  const model = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
   const tools: Anthropic.Tool[] = [
     {
       name: "get_weather",
@@ -80,7 +80,7 @@ async function runAnthropic(): Promise<void> {
 
 async function runOpenAI(): Promise<void> {
   const client = new OpenAI();
-  const model = process.env.OPENAI_MODEL || "gpt-4o";
+  const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
   const tools: OpenAI.Chat.ChatCompletionTool[] = [
     {
       type: "function",

@@ -44,7 +44,7 @@ async function classify(provider: string, text: string) {
   if (provider === "anthropic") {
     const client = new Anthropic();
     const r = await client.messages.create({
-      model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+      model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
       max_tokens: 16,
       system: SYSTEM,
       messages: [{ role: "user", content: text }],
@@ -54,7 +54,7 @@ async function classify(provider: string, text: string) {
 
   const client = new OpenAI();
   const r = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     max_tokens: 16,
     messages: [
       { role: "system", content: SYSTEM },

@@ -53,7 +53,7 @@ const INSTRUCTION = `Extract a structured support ticket from this message.\n\n$
 async function parseAnthropic() {
   const client = new Anthropic();
   const r = await client.messages.parse({
-    model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+    model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
     max_tokens: 512,
     messages: [{ role: "user", content: INSTRUCTION }],
     output_config: { format: zodOutputFormat(SupportTicket) },
@@ -64,7 +64,7 @@ async function parseAnthropic() {
 async function parseOpenAI() {
   const client = new OpenAI();
   const r = await client.chat.completions.parse({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     max_tokens: 512,
     messages: [{ role: "user", content: INSTRUCTION }],
     response_format: zodResponseFormat(SupportTicket, "support_ticket"),

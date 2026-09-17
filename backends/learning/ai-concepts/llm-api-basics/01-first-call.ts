@@ -26,10 +26,10 @@ dotenv.config({ path: path.join(here, "..", ".env"), quiet: true }); // pulls AP
 const PROMPT = "In one sentence, what is a backend engineer?";
 
 async function callAnthropic() {
-  console.log(`Using Anthropic model: ${process.env.ANTHROPIC_MODEL || "claude-opus-4-8"}`);
+  console.log(`Using Anthropic model: ${process.env.ANTHROPIC_MODEL || "claude-haiku-4-5"}`);
   const client = new Anthropic(); // reads ANTHROPIC_API_KEY from the environment
   const resp = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+    model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
     max_tokens: 1024, // a hard cap on the *response* length, in tokens
     messages: [{ role: "user", content: PROMPT }],
   });
@@ -41,10 +41,10 @@ async function callAnthropic() {
 }
 
 async function callOpenAI() {
-  console.log(`Using OpenAI model: ${process.env.OPENAI_MODEL || "gpt-4o"}`);
+  console.log(`Using OpenAI model: ${process.env.OPENAI_MODEL || "gpt-5.4-mini"}`);
   const client = new OpenAI(); // reads OPENAI_API_KEY from the environment
   const resp = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     messages: [{ role: "user", content: PROMPT }],
   });
   // OpenAI returns one or more "choices"; the text is on the first choice.

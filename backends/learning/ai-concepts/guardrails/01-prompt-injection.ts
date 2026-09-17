@@ -64,7 +64,7 @@ async function send(
     // added conditionally below — an inferred object literal would not have the
     // property, and `role: "user"` would widen to string.
     const params: Anthropic.MessageCreateParamsNonStreaming = {
-      model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+      model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
       max_tokens: 256,
       messages: [{ role: "user", content: user }],
     };
@@ -85,7 +85,7 @@ async function send(
       ]
     : [{ role: "user", content: user }];
   const r = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
     max_tokens: 256,
     messages,
   });

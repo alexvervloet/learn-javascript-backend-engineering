@@ -44,9 +44,11 @@ interface Price {
   output: number;
 }
 
+// Dollars per million tokens, matching the models this module defaults to. These
+// go stale — the arithmetic below is the point, not the numbers.
 const PRICES: Record<string, Price> = {
-  anthropic: { input: 5.0, output: 25.0 }, // Claude Opus tier
-  openai: { input: 2.5, output: 10.0 }, // GPT-4o tier
+  anthropic: { input: 1.0, output: 5.0 }, // claude-haiku-4-5
+  openai: { input: 0.75, output: 4.5 }, // gpt-5.4-mini
 };
 
 function dollars(provider: string, inTok: number, outTok: number): number {
@@ -57,7 +59,7 @@ function dollars(provider: string, inTok: number, outTok: number): number {
 
 async function runAnthropic(): Promise<void> {
   const client = new Anthropic();
-  const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
+  const model = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
   // Anthropic and OpenAI each define their own message-parameter type, and the
   // `role` in both is a fixed union rather than a string. Annotating the array
   // with the SDK type is what catches a typo like "assistent" — a plain array
@@ -76,7 +78,7 @@ async function runAnthropic(): Promise<void> {
 
 async function runOpenAI(): Promise<void> {
   const client = new OpenAI();
-  const model = process.env.OPENAI_MODEL || "gpt-4o";
+  const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
   // OpenAI has no token-counting endpoint. For a true pre-flight count you'd use a
   // local tokenizer (js-tiktoken). Here we just read usage off the response after.
