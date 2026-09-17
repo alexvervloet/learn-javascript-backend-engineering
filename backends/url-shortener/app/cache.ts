@@ -16,6 +16,13 @@ async function init(): Promise<void> {
   redis = new Redis(getSettings().redisUrl);
 }
 
+// Swap the client out. Tests use this to install an in-memory fake instead of
+// calling init() and opening a real connection; the bookmark-manager app has the
+// same seam. Nothing in the running application calls it.
+function setRedis(client: Redis): void {
+  redis = client;
+}
+
 async function close(): Promise<void> {
   if (redis) await redis.quit();
 }
@@ -64,5 +71,5 @@ async function stats(): Promise<CacheStats> {
   };
 }
 
-export { init, close, get, set, invalidate, stats };
+export { init, setRedis, close, get, set, invalidate, stats };
 export type { CacheStats };
