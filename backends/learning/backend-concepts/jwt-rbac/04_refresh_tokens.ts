@@ -9,9 +9,17 @@
  *
  * When the access token expires, the client POSTs the refresh token to
  * /auth/refresh for a new pair. The old refresh token is invalidated immediately
- * (rotation): if it was stolen, the next use reveals the theft. Storing refresh
- * tokens server-side (here a Map keyed by `jti`) lets you revoke them on logout,
- * password change, or suspicious activity.
+ * (rotation). Storing refresh tokens server-side (here a Map keyed by `jti`) lets
+ * you revoke them on logout, password change, or suspicious activity.
+ *
+ * What rotation alone does NOT give you is theft detection. If a token is stolen
+ * and both parties keep using it, whoever refreshes second gets a 401 and simply
+ * logs in again; the server cannot tell a victim from a thief. Detecting that
+ * means treating a *reused* rotated token as a signal and revoking the whole
+ * chain descended from it — every token issued from that family — which needs
+ * one more piece of state than this demo keeps: the family id, stored alongside
+ * the jti and carried into each reissued token. Left out here on purpose, and
+ * marked below where it would go.
  *
  * Run:  npx tsx 04_refresh_tokens.ts
  */
@@ -48,7 +56,7 @@ function currentUser(req: Request): TokenClaims {
 // jwt.verify returns string | JwtPayload. A bare string payload has no claims,
 // so this rejects it rather than pretending the claims are there.
 function claimsOf(token: string): TokenClaims | null {
-  const payload = jwt.verify(token, SECRET);
+  const payload = jwt.verify(token, SECRET, { algorithms: ["HS256"] });
   if (typeof payload === "string") return null;
   return payload as TokenClaims;
 }
@@ -138,7 +146,14 @@ app.post("/auth/refresh", (req, res) => {
   }
 
   const username = activeRefreshTokens.get(payload.jti);
-  if (!username) return res.status(401).json({ detail: "Refresh token has been revoked" });
+  if (!username) {
+    // A valid, unexpired refresh token that is not in the store has already been
+    // rotated away. That is exactly the reuse signal: either a thief is
+    // replaying it, or the real client is. Production code revokes the whole
+    // token family here and forces a fresh login. This demo only rejects the
+    // one token, which stops the request but tells nobody a theft happened.
+    return res.status(401).json({ detail: "Refresh token has been revoked" });
+  }
 
   activeRefreshTokens.delete(payload.jti); // rotate: invalidate before reissuing
   const user = USERS[username];

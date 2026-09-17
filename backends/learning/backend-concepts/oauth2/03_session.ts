@@ -95,7 +95,7 @@ function currentUser(req: Request, res: Response, next: NextFunction): void {
   }
   let payload: jwt.JwtPayload | string;
   try {
-    payload = jwt.verify(token, SECRET_KEY);
+    payload = jwt.verify(token, SECRET_KEY, { algorithms: ["HS256"] });
   } catch (err) {
     // A caught value is `unknown`, so the error class is checked rather than
     // reading .name off it directly.

@@ -76,7 +76,7 @@ function authenticate(req: Request, res: Response, next: NextFunction): void {
   try {
     // jwt.verify returns string | JwtPayload, and a bare string payload carries
     // no claims, so the useful shape has to be asserted after the check.
-    const payload = jwt.verify(token, SECRET);
+    const payload = jwt.verify(token, SECRET, { algorithms: ["HS256"] });
     if (typeof payload === "string") {
       res.status(401).json({ detail: "Invalid token" });
       return;
