@@ -68,9 +68,12 @@ Each module's README states exactly what it needs and how to start it.
 ```bash
 npm install                 # all backend + learning dependencies, from the repo root
 npm run prisma:generate     # build the per-project Prisma clients
-npm run typecheck           # tsc across the whole repo — no output means clean
-npm test                    # the full Jest suite — in-memory SQLite, no infra
+npm run typecheck           # tsc over backends/ and d-structs-algos/ — no output means clean
+npm test                    # the full Jest suite — SQLite only, no services to start
 ```
+
+The frontends have their own `tsconfig.json` and are not part of the root
+typecheck. Each one runs `npm run typecheck` in its own folder.
 
 Run a single module or test file by passing a path through:
 
