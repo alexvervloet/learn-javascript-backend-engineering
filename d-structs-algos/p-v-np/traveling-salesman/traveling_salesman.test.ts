@@ -1,5 +1,5 @@
 import { test, expect } from "@jest/globals";
-import { tsp } from "./traveling_salesman.js";
+import { tsp, verifyTsp, permutations } from "./traveling_salesman.js";
 import type { DistanceMatrix } from "./traveling_salesman.js";
 
 const cases: [number[], DistanceMatrix, number, boolean][] = [
@@ -91,4 +91,51 @@ const cases: [number[], DistanceMatrix, number, boolean][] = [
 
 test.each(cases)("tsp finds path shorter than %#", (cities, paths, dist, expected) => {
   expect(tsp(cities, paths, dist)).toBe(expected);
+});
+
+// verifyTsp is the other half of the module's point: finding a route is the hard
+// direction, checking one someone hands you is the easy one. It was exported and
+// never exercised.
+
+const SQUARE: DistanceMatrix = [
+  [0, 10, 15, 20],
+  [10, 0, 35, 25],
+  [15, 35, 0, 30],
+  [20, 25, 30, 0],
+];
+
+test("verifyTsp accepts a route inside the budget", () => {
+  // 0 -> 1 -> 3 -> 2  =  10 + 25 + 30  =  65
+  expect(verifyTsp(SQUARE, 65, [0, 1, 3, 2])).toBe(true);
+  expect(verifyTsp(SQUARE, 100, [0, 1, 3, 2])).toBe(true);
+});
+
+test("verifyTsp rejects a route over the budget", () => {
+  expect(verifyTsp(SQUARE, 64, [0, 1, 3, 2])).toBe(false);
+});
+
+test("verifyTsp measures the route it is given, not the best one", () => {
+  // 0 -> 2 -> 1 -> 3  =  15 + 35 + 25  =  75, worse than the 65 above.
+  // A verifier checks one claim; it does not go looking for a better answer.
+  expect(verifyTsp(SQUARE, 70, [0, 2, 1, 3])).toBe(false);
+  expect(tsp([0, 1, 2, 3], SQUARE, 70)).toBe(true);
+});
+
+test("a route tsp accepts is one verifyTsp accepts", () => {
+  const budget = 65;
+  expect(tsp([0, 1, 2, 3], SQUARE, budget)).toBe(true);
+  const witness = permutations([0, 1, 2, 3]).find((perm) =>
+    verifyTsp(SQUARE, budget, perm)
+  );
+  expect(witness).toBeDefined();
+});
+
+test("permutations returns every ordering exactly once", () => {
+  for (const n of [1, 2, 3, 4, 5]) {
+    const input = Array.from({ length: n }, (_, i) => i);
+    const perms = permutations(input);
+    const factorial = input.reduce((acc, _, i) => acc * (i + 1), 1);
+    expect(perms).toHaveLength(factorial);
+    expect(new Set(perms.map((p) => p.join(",")))).toHaveProperty("size", factorial);
+  }
 });
