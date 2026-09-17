@@ -7,8 +7,8 @@ React + Vite frontends that pair with backend projects in this repo.
 | Folder | Pairs with | Stack |
 |---|---|---|
 | [bookmark-manager/](bookmark-manager/) | `backends/bookmark-manager/` | React, React Router, Tailwind CSS |
-| [web-framework-tutorial/](web-framework-tutorial/) | `backends/learning/web-framework-tutorial/tutorial/` | React, JSX |
-| [web-framework-advanced/](web-framework-advanced/) | `backends/learning/web-framework-tutorial/advanced/` | React, JSX |
+| [web-framework-tutorial/](web-framework-tutorial/) | `backends/learning/web-framework-tutorial/tutorial/` | React, TypeScript |
+| [web-framework-advanced/](web-framework-advanced/) | `backends/learning/web-framework-tutorial/advanced/` | React, TypeScript |
 
 ## Setup (any project)
 
@@ -16,4 +16,5 @@ React + Vite frontends that pair with backend projects in this repo.
 cd <project-folder>
 npm install
 npm run dev
+npm run typecheck   # these are not covered by the repo-root typecheck
 ```
