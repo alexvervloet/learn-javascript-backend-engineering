@@ -224,3 +224,45 @@ rule rather than case by case. And when writing documentation that claims a
 command produces a particular result, run the command. Three of the sixteen
 commands drafted for that README were wrong about their own endpoint, and one of
 those three was wrong because the endpoint was.
+
+## Making the suite parallel traded one shared resource for another
+
+**Expected:** the suite was pinned to `maxWorkers: 1` so the two capstone apps
+could share a SQLite file. Give each Jest worker its own database and the pin
+comes off.
+
+**What happened:** the first half worked exactly as expected. `globalSetup` runs
+`prisma db push` once per app into a template and copies it per worker, each
+app's `tests/env.ts` builds `DATABASE_URL` from `JEST_WORKER_ID`, and
+`npm test` went from 13.8s to 6.3s. The seven capstone suites are about 70% of
+the total runtime, and those were precisely the ones being serialised.
+
+Then the suite started failing about three runs in ninety. Always the same shape:
+one whole test file, every request returning 404, as though it had reached a
+server belonging to a different app. One of the affected modules uses an
+in-memory database, so it was not database contention — it was the other thing
+workers share, which is the OS.
+
+The suspect was `listen(0)`. It draws from the ephemeral port range, and in
+parallel a dozen processes take and release ports in that same narrow band at
+once. Giving each worker a deterministic port below the ephemeral range
+(21000/22000/23000 plus the worker id) made it stop: 110 consecutive clean runs,
+against three failures in ninety before.
+
+**The part worth being honest about:** that is an empirical fix, not an
+understood one. Two processes were never caught holding the same port, and every
+attempt to instrument the failure made it stop happening — 105 clean runs with a
+probe attached, against three failures in ninety without. Probes that change
+timing and races that disappear under observation go together, so this is
+consistent with the theory without demonstrating it.
+
+**What to do differently:** when removing a shared resource from a test suite,
+ask what else the thing being parallelised shares. Moving from one process to
+twelve does not just divide the work, it multiplies contention for every global
+the processes still have in common — the filesystem, the port space, anything
+with a fixed path. The database was the obvious one and it was in the config
+comment; the port space was neither.
+
+Also: a fix that cannot be explained should say so where the next person will
+read it. All three test setups carry that caveat in a comment, so if the 404s
+ever come back nobody has to rediscover the history.
