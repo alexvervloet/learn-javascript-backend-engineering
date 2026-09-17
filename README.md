@@ -70,6 +70,11 @@ is TypeScript, and Jest only loads it without an extra transpiler on versions wh
 Node strips types natively, which became the default in 22.18. On anything older
 the suite dies before the first test with "'ts-node' is required".
 
+If you switch Node versions after installing, run `npm rebuild better-sqlite3`.
+It is a native module compiled against one Node ABI, and on a mismatch Jest
+reports whole suites as "failed to run" with a NODE_MODULE_VERSION error rather
+than a test failure.
+
 ```bash
 npm install                 # all backend + learning dependencies, from the repo root
 npm run prisma:generate     # build the per-project Prisma clients
