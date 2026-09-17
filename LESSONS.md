@@ -138,3 +138,24 @@ you wrote it, so grep imports against `package.json` rather than waiting for a
 failure. And when you promote a transitive package to a direct one, check which
 major version you just adopted — you are not pinning what was already there, you
 are picking something new.
+
+## Converting the Jest config to TypeScript raised the repo's minimum Node
+
+**Expected:** `jest.config.js` to `jest.config.ts` is a cosmetic change in a repo
+that is TypeScript everywhere else. Jest documents TS config support.
+
+**What happened:** it moved the floor from Node 20 to Node 22.18, and nothing said
+so. Jest loads a `.ts` config by letting Node strip the types, which only became
+the default in 22.18. Where that is unavailable Jest falls back to `ts-node`,
+which this repo does not install, so the run dies before the first test with
+"'ts-node' is required for the TypeScript configuration files". `npm run
+typecheck` passes on Node 20 either way, so the two commands disagree about
+whether the repo works.
+
+Bisecting it took two installs: 22.17.1 fails, 22.18.0 passes.
+
+**What to do differently:** a config file in a language the runtime does not
+natively execute is a runtime requirement, not a style choice. When a config
+changes extension, state the new floor in `engines` and a `.nvmrc` in the same
+commit. Without one, the constraint is only discoverable by someone on an older
+Node getting an error that names a package the project never mentioned.
