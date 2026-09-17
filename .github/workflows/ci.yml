@@ -1,0 +1,81 @@
+# The repo's own CI. For a walkthrough of the syntax, and examples covering
+# releases, scheduled runs, environments and reusable workflows, see
+# backends/learning/github-actions/.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Only the latest run per branch matters — cancel stale ones.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Types and the Prisma schema pair. Fast, so it runs on its own and gives a
+  # clear signal before the slower test job finishes.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run typecheck
+      # Each capstone keeps a SQLite and a Postgres schema because Prisma will
+      # not take `provider` from an environment variable. This fails if the two
+      # model blocks drift.
+      - run: npm run prisma:check
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # a Node version failing alone is useful information
+      matrix:
+        node-version: ["22", "24"] # 22.18 is the floor: see the engines field
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm test # pretest generates the Prisma clients
+
+  # The frontends are excluded from the root tsconfig and have their own, so the
+  # check job above does not cover them.
+  frontends:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [bookmark-manager, web-framework-tutorial, web-framework-advanced]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontends/${{ matrix.project }}/package-lock.json
+      - run: npm ci
+        working-directory: frontends/${{ matrix.project }}
+      - run: npm run typecheck
+        working-directory: frontends/${{ matrix.project }}
+
+  # Both capstones ship a docker-compose.yml that is part of what the projects
+  # teach, so build the images rather than trusting that they still build.
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [bookmark-manager, url-shortener]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build
+        working-directory: backends/${{ matrix.app }}
