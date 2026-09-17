@@ -1,25 +1,29 @@
 // Test environment variables.
 //
-// This lives in its own module for a reason that only bites under ESM. The
-// CommonJS version of setup.js set process.env and then called require() for the
-// app, and `require` runs where it is written. ESM `import` statements do not:
-// they are hoisted and every imported module is evaluated before a single line
-// of the importing module's body. Setting DATABASE_URL in setup.ts's body would
-// therefore run *after* database.ts had already constructed its PrismaClient
-// against whatever DATABASE_URL happened to be set.
+// This lives in its own module for a reason that only bites under ESM. Setting
+// DATABASE_URL in setup.ts's body would run too late: `import` statements are
+// hoisted and every imported module is evaluated before the importing module's
+// own body, so database.ts would already have built its PrismaClient against
+// whatever DATABASE_URL happened to be set.
 //
-// Modules are evaluated in the order they are imported, so a bare
-// `import "./env.js"` placed above the app imports gets these assignments in
-// before Prisma reads them.
+// Modules are evaluated in import order, so a bare `import "./env.js"` above the
+// app imports gets these assignments in first.
+//
+// The database file is per Jest worker. Both capstones reset their tables in
+// `beforeEach`, so two suites sharing one file would delete each other's rows.
+// Jest sets JEST_WORKER_ID (1-based) in every worker; scripts/jest-global-setup.ts
+// creates one database per worker before any suite runs. Outside Jest the
+// variable is unset and this falls back to worker 1.
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-const DB_PATH = path.resolve(here, "..", "prisma", "test.db");
+const WORKER_ID = process.env.JEST_WORKER_ID ?? "1";
+const DB_PATH = path.resolve(here, "..", "prisma", `test-${WORKER_ID}.db`);
 process.env.DATABASE_URL = `file:${DB_PATH}`;
 process.env.SECRET_KEY = process.env.SECRET_KEY || "test-secret-key-not-for-production";
 process.env.ACCESS_TOKEN_EXPIRE_MINUTES = "30";
 
-export { DB_PATH };
+export { DB_PATH, WORKER_ID };
