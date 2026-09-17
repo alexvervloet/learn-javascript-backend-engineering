@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "pretest": "npm run prisma:generate",
-    "prisma:generate": "prisma generate --schema=backends/bookmark-manager/prisma/schema.prisma && prisma generate --schema=backends/url-shortener/prisma/schema.prisma"
+    "prisma:generate": "prisma generate --schema=backends/bookmark-manager/prisma/schema.prisma && prisma generate --schema=backends/url-shortener/prisma/schema.prisma",
+    "prisma:check": "node scripts/check-prisma-schemas.mjs"
   },
   "devDependencies": {
     "@swc/core": "^1.16.2",
