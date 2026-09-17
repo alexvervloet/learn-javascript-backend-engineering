@@ -1,0 +1,40 @@
+// Prisma schema — the Postgres variant, used by docker-compose.yml.
+//
+// Prisma requires `provider` to be a literal in the schema file; it cannot come
+// from an environment variable. So a project that runs SQLite locally and
+// Postgres in a container needs two schema files, not one with a switch.
+//
+// Everything below the datasource block is byte-identical to ../schema.prisma.
+// `npm run prisma:check` fails if the two drift, and CI runs it.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Url {
+  id          Int       @id @default(autoincrement())
+  shortCode   String    @unique @map("short_code")
+  originalUrl String    @map("original_url")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  expiresAt   DateTime? @map("expires_at")
+  clickCount  Int       @default(0) @map("click_count")
+  isActive    Boolean   @default(true) @map("is_active")
+
+  @@map("urls")
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  username       String   @unique
+  hashedPassword String   @map("hashed_password")
+  createdAt      DateTime @default(now()) @map("created_at")
+  isActive       Boolean  @default(true) @map("is_active")
+
+  @@map("users")
+}
