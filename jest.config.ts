@@ -9,7 +9,7 @@
 //   - moduleNameMapper undoes the ".js" extension that nodenext requires on
 //     relative imports, so "./stack.js" finds stack.ts.
 //
-// globalSetup builds the bookmark-manager SQLite test schema once. maxWorkers:1
+// globalSetup builds each capstone's SQLite test schema once. maxWorkers:1
 // runs test files serially so the backend suites can share a single SQLite file
 // and reset it between tests without write races (the d-structs-algos suites are
 // trivially fast, so serial execution costs nothing meaningful).
@@ -19,7 +19,7 @@ import type { Config } from "jest";
 const config: Config = {
   testEnvironment: "node",
   testMatch: ["**/*.test.ts"],
-  globalSetup: "<rootDir>/backends/bookmark-manager/tests/globalSetup.ts",
+  globalSetup: "<rootDir>/scripts/jest-global-setup.ts",
   maxWorkers: 1,
 
   extensionsToTreatAsEsm: [".ts"],
