@@ -1,7 +1,8 @@
 # Shared environment variables used by api and worker.
 # YAML anchors let us define once and merge (<<: *app-env) into each service.
-# In production, replace SECRET_KEY and POSTGRES_PASSWORD with real secrets, and
-# switch the Prisma datasource provider to "postgresql".
+# In production, replace SECRET_KEY and POSTGRES_PASSWORD with real secrets.
+# The api/worker images build their Prisma client from prisma/postgres/schema.prisma;
+# prisma/schema.prisma is the SQLite one used for local development and tests.
 x-app-env: &app-env
   DATABASE_URL: postgresql://postgres:password@db:5432/bookmark_manager
   REDIS_URL: redis://redis:6379/0
@@ -44,7 +45,7 @@ services:
       context: ../..
       dockerfile: backends/bookmark-manager/Dockerfile
     # Apply Prisma migrations first, then start the server.
-    command: sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma && npx tsx app/server.ts"
+    command: sh -c "npx prisma migrate deploy --schema=prisma/postgres/schema.prisma && npx tsx app/server.ts"
     ports:
       - "8002:8000" # matches API_URL = 'http://localhost:8002' in the frontend
     environment:
