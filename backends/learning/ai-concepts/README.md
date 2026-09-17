@@ -60,14 +60,14 @@ cp .env.example .env        # then add your API keys
 Each script is self-contained and runnable on its own:
 
 ```bash
-npx tsx llm-api-basics/02-output-validation.ts
+npx tsx llm-api-basics/01-first-call.ts
 ```
 
 By default a script runs **both** providers. Pass a provider name to run just one:
 
 ```bash
-npx tsx llm-api-basics/02-output-validation.ts anthropic
-npx tsx llm-api-basics/02-output-validation.ts openai
+npx tsx llm-api-basics/01-first-call.ts anthropic
+npx tsx llm-api-basics/01-first-call.ts openai
 ```
 
 If a provider's key is missing or unfunded, that provider prints a `[skipped — …]`
@@ -94,7 +94,7 @@ of faking a symmetric example.
 Same as the rest of [the learning repo](../README.md):
 
 - **Folder names use hyphens.** Step files use a zero-padded number prefix
-  (`02-output-validation.ts`) so reading order is obvious.
+  (`01-first-call.ts`) so reading order is obvious.
 - **The "why" lives in each module's `README.md`;** code files carry short
   header comments for the "what."
 - One fine-tuning note ([prompt-engineering/04-fine-tuning-notes.md](prompt-engineering/04-fine-tuning-notes.md))

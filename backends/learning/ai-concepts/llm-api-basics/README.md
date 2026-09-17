@@ -32,7 +32,7 @@ calls, so *you* resend the whole conversation every time (you'll feel this in
 
 | File | What it teaches |
 |---|---|
-| `02-output-validation.ts` | The absolute minimum request against both providers; how to dig the text out of each response shape |
+| `01-first-call.ts` | The absolute minimum request against both providers; how to dig the text out of each response shape |
 | `02-system-prompts.ts` | Steering behavior with a system prompt; building a multi-turn conversation by hand (the API is stateless) |
 | `03-streaming.ts` | Streaming tokens as they're generated, so a UI isn't frozen for 10 seconds |
 | `04-token-counting-cost.ts` | Counting tokens *before* you send, and estimating what a call costs |
@@ -52,6 +52,6 @@ calls, so *you* resend the whole conversation every time (you'll feel this in
 ```bash
 npm install                  # from the repo root, installs the SDKs
 cp ../.env.example ../.env    # add your keys
-npx tsx 02-output-validation.ts              # runs both providers
-npx tsx 02-output-validation.ts anthropic    # or just one
+npx tsx 01-first-call.ts              # runs both providers
+npx tsx 01-first-call.ts anthropic    # or just one
 ```
