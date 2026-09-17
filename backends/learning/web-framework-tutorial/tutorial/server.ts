@@ -91,6 +91,31 @@ app.get("/", (_req, res) => {
 </form></body>`);
 });
 
+// ── Query validation (min/max length, pattern) ──────────────────────────────
+//
+// This has to be declared BEFORE /items/:item_id below. Express matches routes in
+// declaration order and stops at the first hit, and "/items/limited/" fits the
+// :item_id pattern perfectly well — item_id just comes out as the string
+// "limited". With the order the other way round this handler never runs, and
+// nothing warns you: the request succeeds, against the wrong route.
+//
+// The rule that avoids it: specific paths before parameterised ones.
+app.get("/items/limited/", (req, res) => {
+  const schema = z.object({
+    q: z.string().min(3).max(50).regex(/^[a-zA-Z]+$/).optional(),
+    "q-list": z.union([z.string(), z.array(z.string())]).optional(),
+  });
+  const r = schema.safeParse(req.query);
+  if (!r.success) return res.status(422).json({ detail: r.error.issues });
+  const results: Record<string, unknown> = {
+    items: [{ item_id: "Foo" }, { item_id: "Bar" }],
+  };
+  if (r.data.q) results.q = r.data.q;
+  const qList = r.data["q-list"];
+  if (qList) results.q_list = Array.isArray(qList) ? qList : [qList];
+  return res.json(results);
+});
+
 // ── Path + query parameters ─────────────────────────────────────────────────
 app.get("/items/:item_id", (req, res) => {
   const itemId = one(req.params.item_id);
@@ -132,23 +157,6 @@ app.put("/items/:item_id", validate(Item), (req, res) => {
   const q = one(req.query.q);
   if (q) result.q = q;
   res.json(result);
-});
-
-// ── Query validation (min/max length, pattern) ──────────────────────────────
-app.get("/items/limited/", (req, res) => {
-  const schema = z.object({
-    q: z.string().min(3).max(50).regex(/^[a-zA-Z]+$/).optional(),
-    "q-list": z.union([z.string(), z.array(z.string())]).optional(),
-  });
-  const r = schema.safeParse(req.query);
-  if (!r.success) return res.status(422).json({ detail: r.error.issues });
-  const results: Record<string, unknown> = {
-    items: [{ item_id: "Foo" }, { item_id: "Bar" }],
-  };
-  if (r.data.q) results.q = r.data.q;
-  const qList = r.data["q-list"];
-  if (qList) results.q_list = Array.isArray(qList) ? qList : [qList];
-  return res.json(results);
 });
 
 // ── Path param numeric validation (ge/le) ───────────────────────────────────
