@@ -1,6 +1,11 @@
 // Jest globalSetup — creates the SQLite test schema once before the suite runs.
 // It runs `prisma db push` against a throwaway test.db so every test worker can
 // open it.
+//
+// The path is fixed, so two `npm test` runs at once will fight over the same
+// file: the second one's db push deletes the database the first is mid-query on,
+// and you get a scatter of unrelated failures that look like a flaky suite. One
+// run at a time.
 
 import path from "node:path";
 import fs from "node:fs";
