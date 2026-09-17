@@ -50,6 +50,12 @@ prisma/
   schema.prisma — URL and user models (SQLite, for local development)
   migrations/   — SQLite migration scripts
   postgres/     — the same models with a postgresql datasource, used by Compose
+tests/
+  env.ts        — DATABASE_URL and secrets, imported first (see the file)
+  setup.ts      — fake Redis, stubbed queue, fixtures, shared server
+  auth.test.ts  — register, token, and what a protected route rejects
+  urls.test.ts  — create, custom codes, pagination, stats, soft delete
+  redirect.test.ts — the hot path: cache fill, cache hit, invalidation, clicks
 ```
 
 ## Setup
@@ -58,6 +64,9 @@ prisma/
 # From the repo root, install dependencies and generate the Prisma client
 npm install
 npm run prisma:generate
+
+# Run the test suite (isolated SQLite + an in-memory Redis, no services needed)
+npm test -- backends/url-shortener
 
 # Create the database schema, then run the API
 cd backends/url-shortener
