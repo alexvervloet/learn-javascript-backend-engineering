@@ -25,7 +25,7 @@ services:
     build:
       context: ../..
       dockerfile: backends/url-shortener/Dockerfile
-    command: sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma && npx tsx app/server.ts"
+    command: sh -c "npx prisma migrate deploy --schema=prisma/postgres/schema.prisma && npx tsx app/server.ts"
     ports:
       - "8000:8000"
     environment:
