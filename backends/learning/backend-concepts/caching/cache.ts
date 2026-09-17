@@ -48,6 +48,24 @@ async function setNx(key: string, value: string, ttl: number): Promise<boolean> 
   return result === "OK";
 }
 
+// Release a lock only if we still hold it.
+//
+// A bare DEL is the classic distributed-lock bug: if our work outran LOCK_TTL the
+// lock already expired, someone else acquired it, and DEL deletes *their* lock.
+// Comparing the token first fixes that, and the compare-and-delete has to be one
+// server-side operation or the same race reopens between the GET and the DEL.
+const RELEASE_LUA = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  return redis.call('DEL', KEYS[1])
+end
+return 0
+`;
+
+async function releaseLock(key: string, token: string): Promise<boolean> {
+  const deleted = await client.eval(RELEASE_LUA, 1, key, token);
+  return Number(deleted) === 1;
+}
+
 async function printCacheState(label: string, ...keys: string[]): Promise<void> {
   if (!keys.length) return;
   console.log(`\n  [${label}]`);
@@ -74,5 +92,6 @@ export {
   serialise,
   deserialise,
   setNx,
+  releaseLock,
   printCacheState,
 };
