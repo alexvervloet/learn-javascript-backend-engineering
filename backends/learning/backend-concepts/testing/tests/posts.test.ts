@@ -9,11 +9,9 @@
  */
 
 import { describe, test, expect } from "@jest/globals";
-import request from "supertest";
 
 import type { PostRow } from "../app/db.js";
-import { app } from "../app/main.js";
-import { db, installIsolation, makeUser, makePost } from "./helpers.js";
+import { api, db, installIsolation, makeUser, makePost } from "./helpers.js";
 
 installIsolation();
 
@@ -24,7 +22,7 @@ const getPost = (id: number): PostRow | undefined =>
 
 describe("GET /posts", () => {
   test("empty list", async () => {
-    const res = await request(app).get("/posts");
+    const res = await api().get("/posts");
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
   });
@@ -33,7 +31,7 @@ describe("GET /posts", () => {
     const user = makeUser();
     makePost(user, { title: "Published", published: true });
     makePost(user, { title: "Draft", published: false });
-    const titles = (await request(app).get("/posts")).body.map((p: PostRow) => p.title);
+    const titles = (await api().get("/posts")).body.map((p: PostRow) => p.title);
     expect(titles).toContain("Published");
     expect(titles).not.toContain("Draft");
   });
@@ -43,7 +41,7 @@ describe("GET /posts", () => {
     const bob = makeUser({ username: "bob" });
     makePost(alice, { title: "Alice's post" });
     makePost(bob, { title: "Bob's post" });
-    const res = await request(app).get(`/posts?author_id=${alice.id}`);
+    const res = await api().get(`/posts?author_id=${alice.id}`);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].title).toBe("Alice's post");
   });
@@ -53,7 +51,7 @@ describe("GET /posts", () => {
     makePost(user, { title: "First" });
     makePost(user, { title: "Second" });
     makePost(user, { title: "Third" });
-    const titles = (await request(app).get("/posts")).body.map((p: PostRow) => p.title);
+    const titles = (await api().get("/posts")).body.map((p: PostRow) => p.title);
     expect(titles).toEqual(["Third", "Second", "First"]);
   });
 });
@@ -61,21 +59,21 @@ describe("GET /posts", () => {
 describe("GET /posts/:id", () => {
   test("returns the post", async () => {
     const post = makePost(makeUser(), { title: "Hello" });
-    const res = await request(app).get(`/posts/${post.id}`);
+    const res = await api().get(`/posts/${post.id}`);
     expect(res.status).toBe(200);
     expect(res.body.title).toBe("Hello");
     expect(res.body.id).toBe(post.id);
   });
 
   test("404 for a missing post", async () => {
-    expect((await request(app).get("/posts/99999")).status).toBe(404);
+    expect((await api().get("/posts/99999")).status).toBe(404);
   });
 });
 
 describe("POST /posts", () => {
   test("creates a post (response + DB state)", async () => {
     const user = makeUser();
-    const res = await request(app).post("/posts").set("X-User-Id", String(user.id)).send({ title: "New Post", body: "Some content." });
+    const res = await api().post("/posts").set("X-User-Id", String(user.id)).send({ title: "New Post", body: "Some content." });
 
     expect(res.status).toBe(201);
     expect(res.body.title).toBe("New Post");
@@ -91,7 +89,7 @@ describe("POST /posts", () => {
   test("post belongs to the authenticated user", async () => {
     const alice = makeUser({ username: "alice" });
     const bob = makeUser({ username: "bob" });
-    const res = await request(app).post("/posts").set("X-User-Id", String(alice.id)).send({ title: "Alice's", body: "..." });
+    const res = await api().post("/posts").set("X-User-Id", String(alice.id)).send({ title: "Alice's", body: "..." });
     const post = getPost(res.body.id);
     expect(post?.user_id).toBe(alice.id);
     expect(post?.user_id).not.toBe(bob.id);
@@ -102,7 +100,7 @@ describe("PATCH /posts/:id", () => {
   test("updates the title (response + DB state)", async () => {
     const user = makeUser();
     const post = makePost(user, { title: "Old title" });
-    const res = await request(app).patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ title: "New title" });
+    const res = await api().patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ title: "New title" });
     expect(res.status).toBe(200);
     expect(res.body.title).toBe("New title");
     expect(getPost(post.id)?.title).toBe("New title");
@@ -111,14 +109,14 @@ describe("PATCH /posts/:id", () => {
   test("updates the published flag", async () => {
     const user = makeUser();
     const post = makePost(user, { published: false });
-    await request(app).patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ published: true });
+    await api().patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ published: true });
     expect(Boolean(getPost(post.id)?.published)).toBe(true);
   });
 
   test("partial update leaves other fields intact", async () => {
     const user = makeUser();
     const post = makePost(user, { title: "Keep me", body: "Keep this too." });
-    await request(app).patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ published: true });
+    await api().patch(`/posts/${post.id}`).set("X-User-Id", String(user.id)).send({ published: true });
     const updated = getPost(post.id);
     expect(updated?.title).toBe("Keep me");
     expect(updated?.body).toBe("Keep this too.");
@@ -126,7 +124,7 @@ describe("PATCH /posts/:id", () => {
 
   test("404 for a missing post", async () => {
     const user = makeUser();
-    const res = await request(app).patch("/posts/99999").set("X-User-Id", String(user.id)).send({ title: "x" });
+    const res = await api().patch("/posts/99999").set("X-User-Id", String(user.id)).send({ title: "x" });
     expect(res.status).toBe(404);
   });
 });
@@ -135,7 +133,7 @@ describe("DELETE /posts/:id", () => {
   test("deletes the post (response + DB state)", async () => {
     const user = makeUser();
     const post = makePost(user);
-    const res = await request(app).delete(`/posts/${post.id}`).set("X-User-Id", String(user.id));
+    const res = await api().delete(`/posts/${post.id}`).set("X-User-Id", String(user.id));
     expect(res.status).toBe(204);
     expect(getPost(post.id)).toBeUndefined();
   });
@@ -143,13 +141,13 @@ describe("DELETE /posts/:id", () => {
   test("deleted post is no longer listed", async () => {
     const user = makeUser();
     const post = makePost(user, { title: "Gone soon" });
-    await request(app).delete(`/posts/${post.id}`).set("X-User-Id", String(user.id));
-    const titles = (await request(app).get("/posts")).body.map((p: PostRow) => p.title);
+    await api().delete(`/posts/${post.id}`).set("X-User-Id", String(user.id));
+    const titles = (await api().get("/posts")).body.map((p: PostRow) => p.title);
     expect(titles).not.toContain("Gone soon");
   });
 
   test("404 for a missing post", async () => {
     const user = makeUser();
-    expect((await request(app).delete("/posts/99999").set("X-User-Id", String(user.id))).status).toBe(404);
+    expect((await api().delete("/posts/99999").set("X-User-Id", String(user.id))).status).toBe(404);
   });
 });

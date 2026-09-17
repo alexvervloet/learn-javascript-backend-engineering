@@ -4,10 +4,37 @@
 // so every test starts from a clean database. Factories return rows with
 // sensible, overridable defaults for building test data.
 
-import { beforeEach, afterEach } from "@jest/globals";
+import http from "node:http";
 
+import { beforeAll, beforeEach, afterEach, afterAll } from "@jest/globals";
+import request from "supertest";
+import type TestAgent from "supertest/lib/agent.js";
+
+import { app } from "../app/main.js";
 import { db } from "../app/db.js";
 import type { PostRow, UserRow } from "../app/db.js";
+
+// One server for the whole test file, rather than one per request.
+//
+// `request(app)` reads as if it just sends a request, but supertest's Test
+// constructor calls http.createServer(app) every time, listens on an ephemeral
+// port, and closes the server when the response arrives. At 40 requests in this
+// folder that is 40 listen/close cycles for no benefit.
+//
+// Give supertest a server that is already listening and it skips all of that:
+// it only creates one when app.address() returns null, and only closes the one
+// it created. api() is the accessor; call it inside a test, after beforeAll.
+const server = http.createServer(app);
+
+beforeAll(async () => {
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+});
+
+afterAll(async () => {
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+});
+
+const api = (): TestAgent => request(server);
 
 interface UserOverrides {
   username?: string;
@@ -58,4 +85,4 @@ function makePost(
   return post;
 }
 
-export { db, installIsolation, makeUser, makePost };
+export { db, api, installIsolation, makeUser, makePost };

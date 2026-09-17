@@ -6,7 +6,9 @@
 // imported modules in order, before this module's own body runs. See env.ts.
 import "./env.js";
 
-import { beforeEach, afterAll } from "@jest/globals";
+import http from "node:http";
+
+import { beforeAll, beforeEach, afterAll } from "@jest/globals";
 import RedisMock from "ioredis-mock";
 import request from "supertest";
 import type TestAgent from "supertest/lib/agent.js";
@@ -28,7 +30,25 @@ tasks.fetchBookmarkMetadata.delay = async () => {
   return undefined as never;
 };
 
-const api = (): TestAgent => request(app);
+// One server per test file, not one per request.
+//
+// `request(app)` looks cheap, but supertest's Test constructor runs
+// http.createServer(app) every time it is called, then listens on an ephemeral
+// port and closes the server once the response lands. This file makes roughly a
+// hundred requests, and the suite as a whole several hundred, so that is several
+// hundred listen/close cycles inside one Jest worker — slow, and enough socket
+// churn to make rare, hard-to-place failures possible.
+//
+// Handing supertest a server that is already listening skips all of it:
+// Test.serverAddress only creates one when app.address() returns null, and only
+// closes the one it created.
+const server = http.createServer(app);
+
+beforeAll(async () => {
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+});
+
+const api = (): TestAgent => request(server);
 
 interface NewUser {
   email: string;
@@ -86,6 +106,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await new Promise<void>((resolve) => server.close(() => resolve()));
   await prisma.$disconnect();
   await getRedis().quit();
 });
