@@ -24,7 +24,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // dotenv has no ESM default-export config helper in this version, so the
 // module is imported and its config() called explicitly. It must run before
 // any client below reads an API key out of process.env.
-dotenv.config({ path: path.join(here, "..", ".env") });
+dotenv.config({ path: path.join(here, "..", ".env"), quiet: true });
 
 const SYSTEM = "You are a grumpy senior engineer. Answer correctly but tersely, with a sigh.";
 const TURN_1 = "What is a database index?";

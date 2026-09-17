@@ -28,7 +28,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // dotenv has no ESM default-export config helper in this version, so the
 // module is imported and its config() called explicitly. It must run before
 // any client below reads an API key out of process.env.
-dotenv.config({ path: path.join(here, "..", ".env") });
+dotenv.config({ path: path.join(here, "..", ".env"), quiet: true });
 
 // The template builder. Note the <document> delimiters around the untrusted text.
 function buildPrompt(document: string, tone: string, maxWords: number) {

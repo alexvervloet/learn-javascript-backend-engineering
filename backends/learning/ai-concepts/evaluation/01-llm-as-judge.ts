@@ -31,7 +31,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // dotenv has no ESM default-export config helper in this version, so the
 // module is imported and its config() called explicitly. It must run before
 // any client below reads an API key out of process.env.
-dotenv.config({ path: path.join(here, "..", ".env") });
+dotenv.config({ path: path.join(here, "..", ".env"), quiet: true });
 
 const Verdict = z.object({
   passed: z.boolean(),
