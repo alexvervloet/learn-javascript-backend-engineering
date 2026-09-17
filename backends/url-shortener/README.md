@@ -42,14 +42,14 @@ app/
   config.ts     — settings read from the environment
   validate.ts   — Zod body-validation middleware
   request.ts    — path and query parameter helpers
-  express.d.ts  — widens Express's Request with `user` and `validated`
   routers/
     auth.ts     — register and login
     urls.ts     — create and list shortened URLs
     redirect.ts — slug → redirect with click tracking
 prisma/
-  schema.prisma — URL and user models
-  migrations/   — migration scripts
+  schema.prisma — URL and user models (SQLite, for local development)
+  migrations/   — SQLite migration scripts
+  postgres/     — the same models with a postgresql datasource, used by Compose
 ```
 
 ## Setup
@@ -71,6 +71,20 @@ Or run the full stack (API + Postgres + Redis + worker):
 docker compose up -d
 ```
 
-> The Prisma datasource is set to SQLite to keep things self-contained. For a
-> Postgres deployment, switch `provider` in `prisma/schema.prisma` to
-> `postgresql` and point `DATABASE_URL` at your database.
+The stack comes up on Postgres, applies migrations, and serves the API on
+port 8000. `docker compose down -v` removes the containers and the volume.
+
+### Two Prisma schemas, and why
+
+Prisma requires `provider` to be a literal in the schema file. It cannot be read
+from an environment variable, so one schema cannot serve both SQLite and
+Postgres. This project keeps both:
+
+| File | Provider | Used by |
+|---|---|---|
+| `prisma/schema.prisma` | `sqlite` | local development (no database to start) |
+| `prisma/postgres/schema.prisma` | `postgresql` | `docker-compose.yml` |
+
+The models below the datasource block are identical in both, and each has its
+own migration history in the matching dialect. `npm run prisma:check` (which CI
+runs) compares the two model blocks and fails if they drift.
