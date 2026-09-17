@@ -159,3 +159,41 @@ natively execute is a runtime requirement, not a style choice. When a config
 changes extension, state the new floor in `engines` and a `.nvmrc` in the same
 commit. Without one, the constraint is only discoverable by someone on an older
 Node getting an error that names a package the project never mentioned.
+
+## supertest builds a new HTTP server for every single request
+
+**Expected:** `request(app)` sends a request. The suite was failing about one run
+in eight, always the same way: a route that exists returning 404, in a different
+test each time.
+
+**What happened:** `request(app)` does far more than send a request. supertest's
+`Test` constructor runs `http.createServer(app)` on every call, listens it on an
+ephemeral port, and closes it once the response lands. `api()` is called once per
+request, so the bookmark-manager suite alone was doing about 150 listen/close
+cycles, with another 40 from the testing module, all inside one Jest worker
+running serially.
+
+Finding it took a while because the failure would not reproduce in isolation: 400
+hammered requests in one file, clean; twelve runs of only the supertest suites,
+clean. It needed the full 48-file suite, which is the only context where that
+socket churn piles up.
+
+Handing supertest a server that is already listening skips all of it —
+`serverAddress` only creates a server when `app.address()` returns null, and
+`end` only closes the one it created. One server per test file, listened in
+`beforeAll` and closed in `afterAll`. Twenty-one consecutive clean runs since,
+against a roughly one-in-eight failure rate before, and the bookmark-manager
+suite got about 40% faster as a side effect.
+
+Honest caveat: twenty-one clean runs is evidence, not proof. What it does do is
+remove the mechanism.
+
+**What to do differently:** when a test helper is called once per assertion, read
+what it allocates. `request(app)` reads like a pure function and is not one. And
+when a flake will not reproduce in a subset, that itself is the clue — it means
+the cause is accumulated state in the shared process, not the code under test.
+
+Separately, and found while chasing this: two `npm test` runs at once destroy
+each other, because `globalSetup` recreates a test.db at a fixed path. The
+resulting failures look exactly like a flaky suite. Noted at the top of
+globalSetup.ts.
