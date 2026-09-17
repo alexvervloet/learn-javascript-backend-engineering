@@ -7,9 +7,15 @@
  *   1. Redis lock (mutex): the first requester acquires a SET NX lock, fetches
  *      from DB, populates cache, releases. Others wait, then read the warm cache.
  *      Result: exactly ONE DB query per stampede.
- *   2. Probabilistic early expiry (XFetch): each reader occasionally refreshes
- *      slightly early with a probability that rises near expiry — no locking,
- *      no synchronized burst. Best under sustained sequential traffic.
+ *   2. Probabilistic early expiry (XFetch): each reader decides on its own whether
+ *      to refresh slightly early, with a probability that climbs as the entry
+ *      nears expiry. No lock, no waiting, and no moment where every reader misses
+ *      at once — the herd is spread out in time instead of serialised.
+ *
+ * The XFetch test is  now - delta * BETA * ln(random()) >= expiry,  where delta is
+ * how long the last recompute took. ln(random()) is negative, so the left side is
+ * always ahead of `now`; a slow recompute (large delta) looks further ahead and so
+ * refreshes earlier, which is the point — expensive entries get more warning.
  *
  * Node is single-threaded, so we simulate concurrency with Promise.all over
  * async requests whose "DB query" awaits a latency sleep, letting them interleave.
@@ -17,6 +23,7 @@
  * Run:  docker compose up -d (Redis)  →  npx tsx 05_stampede.ts
  */
 
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 import * as cache from "./cache.js";
@@ -47,17 +54,42 @@ async function getProductNaive(productId: number): Promise<Product | null> {
   return cache.deserialise(serialised);
 }
 
+// Same thing with a settable TTL, so the sustained-traffic timeline at the end
+// can compare naive and XFetch on equal terms.
+async function getProductNaiveTtl(productId: number, ttlSeconds: number): Promise<Product | null> {
+  const key = cache.productKey(productId);
+  const raw = await cache.client.get(key);
+  if (raw !== null) return cache.deserialise(raw);
+
+  await sleep(DB_LATENCY);
+  recordDbHit();
+  const product = db.getProduct(productId);
+  if (product === null) return null;
+  const serialised = cache.serialise(product);
+  await cache.client.set(key, serialised, "EX", ttlSeconds);
+  return cache.deserialise(serialised);
+}
+
 // ── Solution 1: Redis lock (mutex) ──────────────────────────────────────────
+
+// Waiters give up eventually rather than spinning forever: if the lock holder
+// dies the lock expires after LOCK_TTL, but an unbounded retry loop turns any
+// unexpected state into a hung request instead of a visible error.
+const MAX_WAIT_MS = (cache.LOCK_TTL + 1) * 1000;
+const RETRY_MS = 10;
 
 async function getProductWithLock(productId: number): Promise<Product | null> {
   const key = cache.productKey(productId);
   const lock = cache.lockKey(productId);
+  // A value only this caller knows, so releasing can check we still hold the lock.
+  const token = crypto.randomUUID();
+  const deadline = Date.now() + MAX_WAIT_MS;
 
-  for (;;) {
+  while (Date.now() < deadline) {
     const raw = await cache.client.get(key);
     if (raw !== null) return cache.deserialise(raw);
 
-    const acquired = await cache.setNx(lock, "1", cache.LOCK_TTL);
+    const acquired = await cache.setNx(lock, token, cache.LOCK_TTL);
     if (acquired) {
       try {
         const again = await cache.client.get(key); // double-check
@@ -71,11 +103,68 @@ async function getProductWithLock(productId: number): Promise<Product | null> {
         await cache.client.set(key, serialised, "EX", cache.PRODUCT_TTL);
         return cache.deserialise(serialised);
       } finally {
-        await cache.client.del(lock);
+        // Not client.del(lock): see releaseLock in cache.ts for why the token
+        // has to be compared server-side before deleting.
+        await cache.releaseLock(lock, token);
       }
     }
-    await sleep(10); // lock held by another request — wait and retry
+    await sleep(RETRY_MS); // lock held by another request — wait and retry
   }
+  throw new Error(`Timed out waiting for the cache lock on product ${productId}`);
+}
+
+// ── Solution 2: probabilistic early expiry (XFetch) ─────────────────────────
+
+// Stored alongside the value: when it expires, and how long the last recompute
+// took. Both are what the XFetch test reads.
+interface XFetchEntry {
+  product: Product;
+  deltaMs: number;
+  expiresAtMs: number;
+}
+
+// Higher BETA = refresh earlier and more often. 1.0 is the usual production
+// default. This demo runs at 5 because delta here is a 50ms fake query, and at
+// BETA 1 the early-refresh window would be a couple of hundred milliseconds —
+// real, but too narrow to see on the timeline below. A service whose recompute
+// takes seconds gets that width for free at BETA 1.
+const BETA = 5.0;
+
+// True when this reader should refresh before the entry has actually expired.
+// ln(random()) is negative, so `now - deltaMs * BETA * ln(...)` always looks
+// ahead of now; the closer to expiry, the likelier that lands past it.
+function shouldRefreshEarly(entry: XFetchEntry, now: number): boolean {
+  return now - entry.deltaMs * BETA * Math.log(Math.random()) >= entry.expiresAtMs;
+}
+
+async function getProductXFetch(
+  productId: number,
+  ttlSeconds: number = cache.PRODUCT_TTL
+): Promise<Product | null> {
+  const key = `xfetch:${cache.productKey(productId)}`;
+  const raw = await cache.client.get(key);
+
+  if (raw !== null) {
+    const entry = JSON.parse(raw) as XFetchEntry;
+    if (!shouldRefreshEarly(entry, Date.now())) return entry.product;
+    // Fall through and recompute early — no lock, no waiting.
+  }
+
+  const startedAt = Date.now();
+  await sleep(DB_LATENCY);
+  recordDbHit();
+  const product = db.getProduct(productId);
+  if (product === null) return null;
+
+  const deltaMs = Date.now() - startedAt;
+  const entry: XFetchEntry = {
+    product,
+    deltaMs,
+    expiresAtMs: Date.now() + ttlSeconds * 1000,
+  };
+  // The Redis TTL is the real backstop; XFetch only ever refreshes before it.
+  await cache.client.set(key, JSON.stringify(entry), "EX", ttlSeconds);
+  return product;
 }
 
 // Both getProduct variants have this shape, so naming it lets runConcurrent
@@ -128,11 +217,59 @@ async function main(): Promise<void> {
   console.log(`
   Expiry-time summary:
     Naive at expiry:      ${naiveExpiry} DB hits — same stampede as cold start
-    Redis lock at expiry: ${lockExpiry} DB hit  — the lock serialises access
+    Redis lock at expiry: ${lockExpiry} DB hit  — the lock serialises access`);
 
-  Probabilistic early expiry (XFetch) instead refreshes a hot key slightly before
-  its TTL fires, so under sustained traffic there's no synchronized burst at all —
-  and no lock contention, which matters at millions of requests per second.`);
+  // XFetch is about sustained traffic, so poll steadily across two TTLs and
+  // print when each approach went to the database. Naive has a cliff exactly at
+  // expiry; XFetch refreshes somewhere before it, and never serves a miss.
+  const TTL = 4; // seconds — short so the timeline fits on screen
+  const STEP = 200; // ms between requests
+  const STEPS = 45; // ~9s, a little over two TTLs
+
+  async function timeline(
+    label: string,
+    load: (id: number) => Promise<Product | null>
+  ): Promise<string> {
+    await cache.client.flushdb();
+    dbHits = 0;
+    let marks = "";
+    let last = 0;
+    for (let i = 0; i < STEPS; i += 1) {
+      await load(keyboard.id);
+      marks += dbHits > last ? "D" : ".";
+      last = dbHits;
+      await sleep(STEP);
+    }
+    console.log(`  ${label.padEnd(12)} ${marks}   ${dbHits} DB hits`);
+    return marks;
+  }
+
+  console.log(`\n=== Sustained traffic: 1 request every ${STEP}ms for ${(STEPS * STEP) / 1000}s, TTL ${TTL}s ===`);
+  console.log("      (D = went to the database, . = served from cache)\n");
+  await timeline("Naive", (id) => getProductNaiveTtl(id, TTL));
+  await timeline("Naive", (id) => getProductNaiveTtl(id, TTL));
+  await timeline("XFetch", (id) => getProductXFetch(id, TTL));
+  await timeline("XFetch", (id) => getProductXFetch(id, TTL));
+  await timeline("XFetch", (id) => getProductXFetch(id, TTL));
+
+  console.log(`
+  Read the two Naive rows against the three XFetch rows. Naive's D is in the same
+  column every run, because the TTL fires at a fixed time — and under real load
+  that column is where every concurrent request misses at once. XFetch's D moves,
+  and lands before the expiry rather than on it. That jitter is the whole
+  mechanism: there is no single instant when the cache is cold for everybody.
+
+  The lock and XFetch both avoid the stampede, and they pay for it differently.
+  The lock guarantees exactly one DB query, at the cost of every other request
+  blocking until the holder finishes — a latency spike for N-1 callers, and one
+  more thing that can deadlock or leak. XFetch never blocks anyone and never
+  serves a cold miss, but it accepts a small amount of redundant work: the count
+  above is random, and occasionally more than one.
+
+  Rule of thumb: lock when the recompute is expensive enough that doing it twice
+  really hurts; XFetch when latency matters more and a duplicate query is cheap.
+  XFetch also needs sustained traffic — an entry nobody reads is never refreshed
+  early, so it still expires and the next reader takes a cold miss.`);
 
   await cache.client.quit();
 }
@@ -146,4 +283,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   });
 }
 
-export { getProductNaive, getProductWithLock };
+export { getProductNaive, getProductWithLock, getProductXFetch };
