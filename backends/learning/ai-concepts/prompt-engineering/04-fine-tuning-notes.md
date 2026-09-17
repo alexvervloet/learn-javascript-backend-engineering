@@ -26,7 +26,7 @@ For almost every problem, work down this list and stop at the first thing that
 works:
 
 1. **Better prompting** — few-shot examples and clear instructions
-   ([01](01-zero-vs-few-shot.js), [03](03-prompt-templates.js)) solve a startling
+   ([01](01-zero-vs-few-shot.ts), [03](03-prompt-templates.ts)) solve a startling
    amount. Cheapest, fastest to iterate.
 2. **RAG** — if the gap is *knowledge* ("the model doesn't know our docs / our
    data"), retrieval beats fine-tuning. You can update the knowledge base
