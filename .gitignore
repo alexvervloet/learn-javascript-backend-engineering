@@ -5,8 +5,21 @@ coverage/
 # Secrets — never commit real API keys
 .env
 
+# Exception: this one is exercise input, not configuration. The docker-debugging
+# module is a deliberately broken stack you fix by reading logs, and its compose
+# file interpolates ${POSTGRES_DB}/${POSTGRES_PASSWORD} from here. Both values are
+# throwaway. Without it, Compose adds an undocumented fourth failure to a
+# three-bug exercise.
+!backends/learning/docker-concepts/docker-debugging/broken/.env
+
 # Generated Prisma clients
 **/app/generated/
+
+# TypeScript incremental build caches — machine-specific, never useful in a diff
+*.tsbuildinfo
+
+# VS Code Local History extension
+.history/
 
 # Local SQLite databases
 *.db
