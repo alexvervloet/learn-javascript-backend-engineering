@@ -197,3 +197,30 @@ Separately, and found while chasing this: two `npm test` runs at once destroy
 each other, because `globalSetup` recreates a test.db at a fixed path. The
 resulting failures look exactly like a flaky suite. Noted at the top of
 globalSetup.ts.
+
+## A route that is shadowed does not fail, it answers wrongly
+
+**Expected:** writing a README for the tutorial module meant describing code that
+already worked. The plan was to add a reading order, not to change anything.
+
+**What happened:** verifying the curl commands instead of trusting them turned up
+a dead route. `/items/limited/` was declared after `/items/:item_id`, and Express
+matches in declaration order and stops at the first hit, so every request to
+`/items/limited/` was served by `:item_id` with `item_id` bound to the string
+`"limited"`. The whole query-validation lesson — 3-to-50 characters, letters only
+— had never executed once.
+
+Nothing surfaced it. There is no warning at startup, no error at request time,
+and the response is a perfectly good 200 with a plausible body:
+`{"item_id":"limited","q":"ab"}`. It was only visible because the README claimed
+that URL returns a 422 and it did not.
+
+`/items/validated/:item_id` in the same file was fine, which is why this survived:
+two path segments do not collide with a one-segment `:item_id`, so the neighbouring
+route worked and made the broken one look like it must too.
+
+**What to do differently:** declare specific paths before parameterised ones, as a
+rule rather than case by case. And when writing documentation that claims a
+command produces a particular result, run the command. Three of the sixteen
+commands drafted for that README were wrong about their own endpoint, and one of
+those three was wrong because the endpoint was.
