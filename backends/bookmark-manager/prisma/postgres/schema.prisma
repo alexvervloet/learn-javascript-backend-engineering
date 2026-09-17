@@ -1,0 +1,83 @@
+// Prisma schema — the Postgres variant, used by docker-compose.yml.
+//
+// Prisma requires `provider` to be a literal in the schema file; it cannot come
+// from an environment variable. So a project that runs SQLite locally and
+// Postgres in a container needs two schema files, not one with a switch.
+//
+// Everything below the datasource block is byte-identical to ../schema.prisma.
+// `npm run prisma:check` fails if the two drift, and CI runs it.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  isActive     Boolean  @default(true) @map("is_active")
+  isAdmin      Boolean  @default(false) @map("is_admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+  // Two FK paths between User and Category would exist if this were a relation
+  // (default_category_id -> category.id and category.user_id -> user.id), which
+  // is ambiguous and unused by the app, so we keep it as a plain column.
+  defaultCategoryId Int? @map("default_category_id")
+
+  bookmarks  Bookmark[]
+  categories Category[]
+  tags       Tag[]
+
+  @@map("user")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  userId      Int      @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookmarks Bookmark[]
+
+  @@unique([name, userId], name: "uq_category_name_user")
+  @@map("category")
+}
+
+model Tag {
+  id     Int    @id @default(autoincrement())
+  name   String
+  userId Int    @map("user_id")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookmarks Bookmark[]
+
+  @@unique([name, userId], name: "uq_tag_name_user")
+  @@map("tag")
+}
+
+model Bookmark {
+  id          Int      @id @default(autoincrement())
+  url         String
+  title       String
+  description String?
+  favorite    Boolean  @default(false)
+  clickCount  Int      @default(0) @map("click_count")
+  userId      Int      @map("user_id")
+  categoryId  Int?     @map("category_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tags     Tag[]
+
+  @@map("bookmark")
+}
