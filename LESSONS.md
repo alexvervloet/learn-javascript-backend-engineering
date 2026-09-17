@@ -113,3 +113,28 @@ legacy parameter and the types are what surfaced it.
 inputs to a runtime you do not control. Deployment artifacts, migration files a
 CLI discovers by name, and anything zipped and shipped elsewhere have their own
 constraints, and a blanket rename will break them quietly.
+
+## A dependency that resolves is not a dependency you declared
+
+**Expected:** the ai-concepts scripts import `dotenv` and run, so `dotenv` was a
+dependency of this repo.
+
+**What happened:** it was never in `package.json`. Twenty files imported it and
+every one of them worked, because `prisma` pulls in `@prisma/config`, which pulls
+in `c12`, which pulls in `dotenv@16`, and npm hoisted it to the top-level
+`node_modules`. A Prisma upgrade, a different package manager, or a dedupe would
+have broken all twenty with `ERR_MODULE_NOT_FOUND`, and the error would point at
+a file whose import statement is correct.
+
+Declaring it properly then caused a second problem. `npm install dotenv` resolved
+17.x rather than the 16.x that had been sitting there, and dotenv 17 prints a
+banner on every `config()` call — including a tip advertising a third-party
+service. Every demo in the module started with a line of someone else's
+marketing. `quiet: true` turns it off.
+
+**What to do differently:** trust the manifest, not the install. A phantom
+dependency is invisible precisely because everything works on the machine where
+you wrote it, so grep imports against `package.json` rather than waiting for a
+failure. And when you promote a transitive package to a direct one, check which
+major version you just adopted — you are not pinning what was already there, you
+are picking something new.
