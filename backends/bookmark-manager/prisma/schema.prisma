@@ -1,9 +1,10 @@
-// Prisma schema — the database models for the bookmark-manager app.
+// Prisma schema — the SQLite variant, used for local development and the test
+// suite, which is why `npm test` needs no database running.
 //
-// The Python original runs PostgreSQL in production and SQLite in tests. Prisma
-// pins the provider in this file, so we use SQLite (matching the test setup) to
-// keep the suite self-contained. Swap `provider` to "postgresql" and point
-// DATABASE_URL at Postgres for a production deployment.
+// `provider` has to be a literal here; Prisma cannot read it from an environment
+// variable. The Postgres variant docker-compose.yml uses therefore lives in its
+// own file, prisma/postgres/schema.prisma, with the same models. Keep the two
+// model blocks identical — `npm run prisma:check` fails if they drift.
 
 generator client {
   provider = "prisma-client-js"

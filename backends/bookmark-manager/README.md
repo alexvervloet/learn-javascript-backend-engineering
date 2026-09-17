@@ -66,6 +66,22 @@ To run the full stack (API + Postgres + Redis + worker):
 docker compose up -d
 ```
 
-> The Prisma datasource is set to SQLite to keep the test suite self-contained.
-> For a Postgres deployment, switch `provider` in `prisma/schema.prisma` to `postgresql` and
-> point `DATABASE_URL` at your database.
+The stack comes up on Postgres, applies migrations, and serves the API on
+port 8002. `docker compose down -v` removes the containers and the volume.
+
+### Two Prisma schemas, and why
+
+Prisma requires `provider` to be a literal in the schema file. It cannot be read
+from an environment variable, so one schema cannot serve both SQLite and
+Postgres. This project keeps both:
+
+| File | Provider | Used by |
+|---|---|---|
+| `prisma/schema.prisma` | `sqlite` | local development and `npm test` (no database to start) |
+| `prisma/postgres/schema.prisma` | `postgresql` | `docker-compose.yml` |
+
+The models below the datasource block are identical in both, and each has its
+own migration history in the matching dialect. `npm run prisma:check` (which CI
+runs) compares the two model blocks and fails if they drift, so a model edited
+in one file and forgotten in the other is caught at review time rather than on
+someone's first `docker compose up`.
