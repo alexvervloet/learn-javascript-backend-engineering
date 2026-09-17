@@ -26,6 +26,7 @@ Multi-service application setup using Docker Compose.
 ## Try it
 
 ```bash
+cp .env.example .env          # compose interpolates ${POSTGRES_DB}/${POSTGRES_PASSWORD} from it
 docker compose up -d          # start all services
 docker compose logs -f app    # follow app logs
 docker compose exec app bash  # shell into the app container
