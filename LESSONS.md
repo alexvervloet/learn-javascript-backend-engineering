@@ -305,3 +305,45 @@ check would have passed four of these broken images.
 natively from 22.18, which is the floor this repo already pins, so the
 containers now match the module's no-build-step story instead of working around
 it — and `node:20` went EOL on the way past.
+
+## Bumping a runtime version means bumping the thing that emulates it
+
+Changing the Lambda module from `nodejs20.x` to `nodejs22.x` was meant to be a
+find-and-replace across four files. Running it afterwards returned:
+
+```
+InvalidParameterValueException: Value nodejs22.x at 'runtime' failed to satisfy
+constraint: Member must satisfy enum value set: [nodejs20.x, provided.al2023, ...]
+```
+
+That list is LocalStack's, not AWS's. `localstack/localstack:3` was pinned in
+the module's `docker-compose.yml` and its newest Node runtime is the one being
+replaced. The emulator had to move to v4 in the same commit.
+
+Then v4 rejected the next call too:
+
+```
+Version ...:$LATEST cannot be updated if an old one is not running
+```
+
+This one was not a version problem. `CreateFunction` returns when the request is
+accepted, not when the function can serve traffic, and until `State` reaches
+`Active` both invokes and code updates fail. Real AWS behaves this way and
+always has — LocalStack 3 was simply lenient enough to hide it. Two of the three
+scripts had papered over it with `await sleep(2000)`, which is the same bug
+wearing a disguise: it passes on a fast machine and fails in CI.
+
+All three now use `waitUntilFunctionActiveV2`, the waiter the AWS SDK ships for
+exactly this.
+
+**What to do differently:** treat a version string in a module that runs against
+an emulator as two changes, not one — the thing being named and the thing doing
+the emulating. And read a hand-rolled `sleep()` as an unreported bug. Every one
+of them is a race someone decided not to name, and the SDK usually ships a
+waiter for the specific condition being slept on.
+
+**The wider point for this repo:** the audit that found this ran every script in
+`aws-concepts` against a live LocalStack. Twelve of fifteen passed on the first
+try and the three failures were all in the module that had just been edited.
+Scripts that need a service to run are the ones most likely to rot, because
+nothing in `npm test` or `tsc --noEmit` ever executes them.
