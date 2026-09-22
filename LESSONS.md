@@ -266,3 +266,42 @@ comment; the port space was neither.
 Also: a fix that cannot be explained should say so where the next person will
 read it. All three test setups carry that caveat in a comment, so if the 404s
 ever come back nobody has to rediscover the history.
+
+## The Docker module was never run after the TypeScript port
+
+The audit built all eleven Dockerfiles under `docker-concepts`. Seven failed to
+build; the other four built and then exited the moment they ran. So the entire
+module was dead, and had been since the port from Python.
+
+Two separate causes, neither of which the conversion could have caught. The
+first is that `npm ci` refuses to run without a `package-lock.json`, and no
+`app/` folder in the module had one. The four Dockerfiles that still built were
+exactly the four using `npm install`. The second is that every `CMD` read
+`["node", "server.js"]` while the file on disk had become `server.ts` — a
+rename the rest of the repo absorbed through `tsx`, which Docker never used.
+
+The expensive part was the debugging exercise. `docker-debugging/broken/` is a
+deliberately misconfigured stack with three documented bugs, and the README
+finds BUG 1 by reading `docker compose logs app` for "listening on :9000". The
+container never started, so that line never printed, and the exercise could not
+be completed at all. The repo already knew this failure mode: `.gitignore` keeps
+`broken/.env` tracked on purpose, with a comment saying an untracked one "adds
+an undocumented fourth failure to a three-bug exercise". The `.js`/`.ts`
+mismatch was that fourth failure, arriving through a different door.
+
+**What to do differently:** a typecheck does not reach inside a container.
+`tsc --noEmit`, the full Jest suite and CI were all green through every one of
+these failures, because the only thing that reads a `CMD` is Docker. Any file a
+build tool interprets rather than compiles — Dockerfiles, compose files,
+workflow YAML, Makefiles — needs its own execution in CI or it silently rots
+through a refactor.
+
+And building is not running. CI now builds each image *and* waits for it to log
+its listening line (`scripts/check-docker-concepts.sh`), because a build-only
+check would have passed four of these broken images.
+
+**A smaller thing worth keeping:** the fix was `node:22` plus `CMD ["node",
+"server.ts"]`, not a build step or a `tsx` dependency. Node strips types
+natively from 22.18, which is the floor this repo already pins, so the
+containers now match the module's no-build-step story instead of working around
+it — and `node:20` went EOL on the way past.
