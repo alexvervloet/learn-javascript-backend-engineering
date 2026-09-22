@@ -19,8 +19,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -31,17 +31,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false # run all versions even if one fails — full compatibility picture
+      # Test the versions you actually support: the current LTS, the one before
+      # it, and the one you are about to move to. Node 20 is past end-of-life,
+      # so a green tick against it says nothing useful and costs a job slot.
       matrix:
-        node-version: ["20", "22", "24"]
+        node-version: ["22", "24", "26"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm # built-in npm cache keyed on package-lock.json
       - run: npm ci
       - run: npm test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: coverage-${{ matrix.node-version }}

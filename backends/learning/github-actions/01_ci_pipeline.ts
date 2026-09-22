@@ -9,7 +9,7 @@ status checks.
 --- WHY CI? ---
 
 "Works on my machine" is not a guarantee. CI runs your code in a clean,
-reproducible environment every time. A PR that breaks on Node 20 but not 22
+reproducible environment every time. A PR that breaks on Node 22 but not 24
 fails CI before it merges. Goal: keep main always deployable.
 
 --- WORKFLOW ANATOMY ---
@@ -37,7 +37,7 @@ Per-branch group; a new push cancels the previous in-progress run on that branch
 --- MATRIX ---
 
   strategy:
-    matrix: { node-version: ["20", "22", "24"] }
+    matrix: { node-version: ["22", "24", "26"] }
     fail-fast: false        # run all entries even if one fails — full picture
 Three parallel jobs, one per Node version. Reference: ${{ matrix.node-version }}.
 

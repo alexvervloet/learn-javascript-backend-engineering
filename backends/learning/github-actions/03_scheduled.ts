@@ -38,7 +38,7 @@ Context funcs: success() · failure() · cancelled() · always() (cleanup).
 
 --- TRIGGER MANUALLY ---
 
-  gh workflow run scheduled.yml -f dry_run=false -f node_version=20
+  gh workflow run scheduled.yml -f dry_run=false -f node_version=24
   gh run watch ; gh run list --workflow scheduled.yml
 
 --- IDEMPOTENCY ---
