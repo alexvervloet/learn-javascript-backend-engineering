@@ -69,6 +69,28 @@ docker compose up -d
 The stack comes up on Postgres, applies migrations, and serves the API on
 port 8002. `docker compose down -v` removes the containers and the volume.
 
+### Deploying this anywhere real
+
+`SECRET_KEY` defaults to `change-me-in-production` so a fresh clone starts with
+no setup. That default signs every JWT this app issues, which means anyone who
+has read this repo can forge a token for any account.
+
+So `app/config.ts` refuses to start when it sees that placeholder and
+`ENVIRONMENT=production` (or `NODE_ENV=production`), and it also rejects any
+secret shorter than 32 characters. HS256 signs with the raw secret, so a short
+one can be brute-forced offline from a single captured token.
+
+Generate a real one:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+The crash is deliberate. A default secret is worse than no default because
+nothing appears to go wrong: the app boots, signs tokens and serves traffic
+exactly as it would with a real secret. A deployment that will not start gets
+noticed; one that quietly accepts forged tokens does not.
+
 ### Two Prisma schemas, and why
 
 Prisma requires `provider` to be a literal in the schema file. It cannot be read
