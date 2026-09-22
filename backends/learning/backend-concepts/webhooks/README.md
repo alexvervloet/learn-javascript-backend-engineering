@@ -21,5 +21,10 @@ npx tsx 02_sender.ts           # terminal B (:8000)
 curl -X POST 'localhost:8000/webhooks/register?url=http://localhost:8001/webhook'
 curl -X POST 'localhost:8000/orders?item=keyboard'
 curl localhost:8001/events
+
+npx tsx 04_reliability.ts      # one process, both ends (:8000 sender, :8001 receiver)
 ```
+
+`04` runs the sender and the receiver itself, so stop `01` and `02` first — it
+binds the same two ports.
 
