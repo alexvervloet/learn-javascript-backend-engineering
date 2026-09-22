@@ -35,38 +35,55 @@ class Graph {
     return false;
   }
 
+  // Both traversals keep two structures rather than one: `order` is the answer,
+  // in visit order, and `seen` is the membership test. An array cannot do both
+  // jobs — `order.includes(x)` is a linear scan, and doing it once per edge
+  // turns an O(V+E) traversal into O(V*E). On a dense graph that is the
+  // difference between a thousand steps and a million.
   breadthFirstSearch(v: number): number[] {
     if (!this.graph.has(v)) {
       return [];
     }
-    const visited: number[] = [];
-    const explore: number[] = [v];
-    while (explore.length > 0) {
-      const node = explore.shift();
-      if (node === undefined || visited.includes(node)) {
+    const order: number[] = [];
+    const seen = new Set<number>([v]);
+    const queue: number[] = [v];
+    // A head index instead of queue.shift(): shift() re-indexes the whole array
+    // on every dequeue, which would put the O(V) step back in a different place.
+    let head = 0;
+    while (head < queue.length) {
+      const node = queue[head];
+      head += 1;
+      if (node === undefined) {
         continue;
       }
-      visited.push(node);
+      order.push(node);
       for (const neighbor of this.sortedNeighbors(node)) {
-        if (!visited.includes(neighbor)) {
-          explore.push(neighbor);
+        // Marked on enqueue, not on dequeue, so a vertex reached from two
+        // neighbours is only ever queued once.
+        if (!seen.has(neighbor)) {
+          seen.add(neighbor);
+          queue.push(neighbor);
         }
       }
     }
-    return visited;
+    return order;
   }
 
   depthFirstSearch(startVertex: number): number[] {
-    const visited: number[] = [];
-    this.depthFirstSearchR(visited, startVertex);
-    return visited;
+    if (!this.graph.has(startVertex)) {
+      return [];
+    }
+    const order: number[] = [];
+    this.depthFirstSearchR(new Set<number>(), order, startVertex);
+    return order;
   }
 
-  depthFirstSearchR(visited: number[], currentVertex: number): void {
-    visited.push(currentVertex);
+  depthFirstSearchR(seen: Set<number>, order: number[], currentVertex: number): void {
+    seen.add(currentVertex);
+    order.push(currentVertex);
     for (const neighbor of this.sortedNeighbors(currentVertex)) {
-      if (!visited.includes(neighbor)) {
-        this.depthFirstSearchR(visited, neighbor);
+      if (!seen.has(neighbor)) {
+        this.depthFirstSearchR(seen, order, neighbor);
       }
     }
   }
