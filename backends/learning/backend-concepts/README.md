@@ -11,7 +11,7 @@ Each subfolder is a self-contained runnable example.
 | [jwt-rbac/](jwt-rbac/) | JWT auth with role-based access control | jsonwebtoken + Express |
 | [kafka-demo/](kafka-demo/) | Producing/consuming, groups, partitions, worker | KafkaJS |
 | [oauth2/](oauth2/) | OAuth2 authorization code flow (GitHub) | Express + express-session |
-| [observability/](observability/) | Structured logging, metrics, correlation IDs | pino + prom-client |
+| [observability/](observability/) | Structured logging, metrics, tracing, correlation IDs | pino + prom-client + OpenTelemetry |
 | [pagination/](pagination/) | Offset vs cursor pagination | Express + better-sqlite3 |
 | [rate-limiting/](rate-limiting/) | Fixed/sliding window, token bucket, middleware | ioredis (Lua) + Express |
 | [testing/](testing/) | Route + dependency integration testing | Jest + supertest + Zod |

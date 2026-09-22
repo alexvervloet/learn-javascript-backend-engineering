@@ -51,7 +51,7 @@ Each module's README states exactly what it needs and how to start it.
 ### Learning modules (`backends/learning/`)
 - [web-framework-tutorial](backends/learning/web-framework-tutorial/) — Express basics through advanced patterns
 - [database-concepts](backends/learning/database-concepts/) — Prisma & pg, migrations, indexes, transactions, full-text search, pgvector, connection pooling
-- [backend-concepts](backends/learning/backend-concepts/) — auth, caching, rate limiting, pagination, webhooks, WebSockets, Kafka, OAuth2, observability
+- [backend-concepts](backends/learning/backend-concepts/) — auth, caching, rate limiting, pagination, webhooks, WebSockets, Kafka, OAuth2, observability (logs, metrics, OpenTelemetry traces)
 - [ai-concepts](backends/learning/ai-concepts/) — LLM APIs, prompt engineering, structured outputs, tool use, embeddings, RAG, evaluation, guardrails; Claude & OpenAI side by side (paid APIs)
 - [testing-concepts](backends/learning/testing-concepts/) — Jest, mocking, database testing, async testing
 - [docker-concepts](backends/learning/docker-concepts/) — multi-stage builds, Compose, debugging, reverse proxy, security, CI/CD
