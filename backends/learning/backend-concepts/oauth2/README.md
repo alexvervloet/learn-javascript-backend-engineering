@@ -17,7 +17,10 @@ flow, using Express + express-session + the built-in `fetch`.
 
 ```bash
 npm install                 # from the repo root (express, express-session, jsonwebtoken)
-npx tsx 01_concepts.ts         # standalone explainer
-npx tsx 02_github.ts           # open http://localhost:8000
+npx tsx 01_concepts.ts         # prints and exits
+npx tsx 02_github.ts           # server on :8000 — open http://localhost:8000
+npx tsx 03_session.ts          # server on :8000 — the OAuth2 to JWT bridge
 ```
+
+`02` and `03` both bind port 8000, so run one at a time.
 
