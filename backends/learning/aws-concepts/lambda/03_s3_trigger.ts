@@ -2,7 +2,13 @@
 import { fileURLToPath } from "node:url";
 
 import path from "node:path";
-import { LambdaClient, CreateFunctionCommand, AddPermissionCommand, DeleteFunctionCommand } from "@aws-sdk/client-lambda";
+import {
+  LambdaClient,
+  CreateFunctionCommand,
+  AddPermissionCommand,
+  DeleteFunctionCommand,
+  waitUntilFunctionActiveV2,
+} from "@aws-sdk/client-lambda";
 import {
   S3Client,
   CreateBucketCommand,
@@ -32,7 +38,7 @@ async function main(): Promise<void> {
   const fn = await lambda.send(
     new CreateFunctionCommand({
       FunctionName: FN,
-      Runtime: "nodejs20.x",
+      Runtime: "nodejs22.x",
       Role: ROLE,
       Handler: "handler.handler",
       Code: { ZipFile: zipFile(handlerPath) },
@@ -40,6 +46,10 @@ async function main(): Promise<void> {
     })
   );
   console.log(`Function ARN: ${fn.FunctionArn}`);
+
+  // Wait for State: "Active" before wiring anything to it — a trigger attached
+  // to a function that is still provisioning drops its first events.
+  await waitUntilFunctionActiveV2({ client: lambda, maxWaitTime: 60 }, { FunctionName: FN });
 
   // --- Create S3 bucket ---
   await s3.send(new CreateBucketCommand({ Bucket: BUCKET }));

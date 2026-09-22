@@ -2,7 +2,7 @@
 // place in the repo that does.
 //
 // It is not repo source — 01_deploy.ts zips it and uploads it to Lambda,
-// where it runs under the nodejs20.x runtime. That runtime executes
+// where it runs under the nodejs22.x runtime. That runtime executes
 // JavaScript, and the function's configured Handler is "handler.handler",
 // which means a file literally named handler.js inside the zip. Converting
 // it to TypeScript would need a bundling step before upload, which is a

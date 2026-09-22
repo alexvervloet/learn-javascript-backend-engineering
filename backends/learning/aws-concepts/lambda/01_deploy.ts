@@ -9,6 +9,7 @@ import {
   GetFunctionConfigurationCommand,
   UpdateFunctionCodeCommand,
   DeleteFunctionCommand,
+  waitUntilFunctionActiveV2,
 } from "@aws-sdk/client-lambda";
 import { config } from "../helpers.js";
 import { zipFile, zipCode } from "./zip.js";
@@ -26,7 +27,7 @@ async function main(): Promise<void> {
   await lambda.send(
     new CreateFunctionCommand({
       FunctionName: "hello",
-      Runtime: "nodejs20.x",
+      Runtime: "nodejs22.x",
       Role: ROLE,
       Handler: "handler.handler", // file "handler.js", exported `handler`
       Code: { ZipFile: zipFile(handlerPath) },
@@ -36,6 +37,18 @@ async function main(): Promise<void> {
     })
   );
   console.log("Function 'hello' created");
+
+  // CreateFunction returns as soon as the request is accepted, not when the
+  // function can serve traffic. Until its State reaches "Active" the function
+  // rejects invokes and code updates with a 409. The SDK ships waiters for
+  // exactly this — they poll GetFunctionConfiguration on a backoff so you don't
+  // hand-roll a sleep that is either too short or wastes time.
+  //
+  // Skipping this is the classic first Lambda deploy script bug: it passes on a
+  // fast day and fails in CI, because the race is with AWS's provisioning, not
+  // with your code.
+  await waitUntilFunctionActiveV2({ client: lambda, maxWaitTime: 60 }, { FunctionName: "hello" });
+  console.log("Function is Active");
 
   // --- List functions ---
   console.log("\n=== Listing functions ===");

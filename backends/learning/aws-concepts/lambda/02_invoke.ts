@@ -8,6 +8,7 @@ import {
   InvokeCommand,
   UpdateFunctionCodeCommand,
   DeleteFunctionCommand,
+  waitUntilFunctionActiveV2,
 } from "@aws-sdk/client-lambda";
 import { config } from "../helpers.js";
 import { zipFile, zipCode } from "./zip.js";
@@ -32,7 +33,7 @@ async function main(): Promise<void> {
   await lambda.send(
     new CreateFunctionCommand({
       FunctionName: "hello",
-      Runtime: "nodejs20.x",
+      Runtime: "nodejs22.x",
       Role: ROLE,
       Handler: "handler.handler",
       Code: { ZipFile: zipFile(handlerPath) },
@@ -40,8 +41,10 @@ async function main(): Promise<void> {
     })
   );
 
-  // LocalStack may take a moment to spin up the container for the first invoke.
-  await sleep(2000);
+  // A new function is not invokable until its State reaches "Active". The SDK
+  // waiter polls for that instead of guessing at a sleep duration, which is
+  // either too short (flaky) or too long (slow) and never the right number.
+  await waitUntilFunctionActiveV2({ client: lambda, maxWaitTime: 60 }, { FunctionName: "hello" });
 
   // --- Synchronous invocation (RequestResponse) ---
   // The caller waits for the result. Use for API responses / real-time work.

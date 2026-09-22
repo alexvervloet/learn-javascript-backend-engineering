@@ -19,7 +19,7 @@ response to events — no servers to manage, paying only for run time.
 
 LocalStack runs functions in Docker containers, so it needs the Docker socket
 mount in `docker-compose.yml` (already included). The first invoke of a new
-function is slow while Docker pulls the `nodejs20.x` runtime image.
+function is slow while Docker pulls the `nodejs22.x` runtime image.
 
 ## Packaging
 
