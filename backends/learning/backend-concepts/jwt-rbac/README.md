@@ -26,10 +26,17 @@ get rejected.
 ## Run
 
 ```bash
-npm install            # from the repo root (jsonwebtoken, express)
-npx tsx 01_jwt_basics.ts  # standalone demo
-npx tsx 02_auth_flow.ts   # starts an Express server on :8000
+npm install                  # from the repo root (jsonwebtoken, express)
+
+npx tsx 01_jwt_basics.ts     # prints and exits
+npx tsx 02_auth_flow.ts      # server on :8000 — Ctrl-C to stop
+npx tsx 03_rbac.ts           # server on :8000
+npx tsx 04_refresh_tokens.ts # server on :8000
 ```
+
+Only `01` runs to completion. The other three start an Express server on port
+8000 and stay up until you stop them, so run one at a time and drive it with
+`curl` from a second terminal.
 
 ```bash
 curl -sX POST localhost:8000/auth/login -H 'Content-Type: application/json' \
