@@ -10,6 +10,7 @@ Each subfolder is a self-contained runnable example.
 | [caching/](caching/) | Cache-aside, write-through/behind, invalidation, stampede | ioredis + better-sqlite3 |
 | [jwt-rbac/](jwt-rbac/) | JWT auth with role-based access control | jsonwebtoken + Express |
 | [kafka-demo/](kafka-demo/) | Producing/consuming, groups, partitions, worker | KafkaJS |
+| [node-runtime/](node-runtime/) | Event loop, streams, backpressure, worker threads, cluster | core Node only |
 | [oauth2/](oauth2/) | OAuth2 authorization code flow (GitHub) | Express + express-session |
 | [observability/](observability/) | Structured logging, metrics, tracing, correlation IDs | pino + prom-client + OpenTelemetry |
 | [pagination/](pagination/) | Offset vs cursor pagination | Express + better-sqlite3 |
