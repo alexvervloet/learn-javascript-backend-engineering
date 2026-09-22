@@ -16,19 +16,19 @@
 
 # ---- Stage 1: builder ----
 # AS builder names the stage so stage 2 can COPY --from=builder.
-FROM node:20 AS builder
+FROM node:22 AS builder
 WORKDIR /app
 
 # Copy ONLY the manifests first so the npm-install layer caches independently
 # of source changes. package-lock.json drives reproducible installs.
-COPY package*.json ./
+COPY app/package*.json ./
 # --mount=type=cache persists npm's cache between builds without bloating layers.
 # --omit=dev installs production dependencies only.
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 
 # ---- Stage 2: runtime ----
-# node:20-slim is Debian stripped to the Node runtime (~200MB vs ~1.1GB full).
-FROM node:20-slim AS runtime
+# node:22-slim is Debian stripped to the Node runtime (~200MB vs ~1.1GB full).
+FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -39,8 +39,8 @@ COPY app/ .
 EXPOSE 8000
 
 # CMD vs ENTRYPOINT:
-#   CMD ["node","server.js"]   default command, fully replaceable:
+#   CMD ["node","server.ts"]   default command, fully replaceable:
 #                              docker run node-multi bash  → replaces CMD
 #   ENTRYPOINT ["node"]        fixed executable; runtime args are appended.
 # CMD is more flexible for dev; ENTRYPOINT when the image has one fixed purpose.
-CMD ["node", "server.js"]
+CMD ["node", "server.ts"]

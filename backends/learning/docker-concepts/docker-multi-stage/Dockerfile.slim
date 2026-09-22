@@ -1,8 +1,8 @@
 # =============================================================================
 # SINGLE-STAGE, SLIM BASE — intermediate between full and multi-stage
 #
-# Switching node:20 → node:20-slim alone drops ~900MB with no structural change.
-# node:20-slim is Debian with just the Node runtime — no build toolchain.
+# Switching node:22 → node:22-slim alone drops ~900MB with no structural change.
+# node:22-slim is Debian with just the Node runtime — no build toolchain.
 #
 # Limitation: native addon packages (bcrypt, better-sqlite3, sharp) may need a
 # compiler at install time. Options: rely on prebuilt binaries, apt-get install
@@ -12,7 +12,7 @@
 # Build: docker build -f Dockerfile.slim -t node-slim .
 # =============================================================================
 
-FROM node:20-slim
+FROM node:22-slim
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -26,4 +26,4 @@ RUN dd if=/dev/urandom of=/tmp/big bs=1M count=50 && rm /tmp/big
 
 COPY app/ .
 EXPOSE 8000
-CMD ["node", "server.js"]
+CMD ["node", "server.ts"]

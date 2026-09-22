@@ -13,17 +13,17 @@
 # Compare: docker images | grep node-
 # =============================================================================
 
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 # build-base would be added here ONLY if a native addon needs compiling:
 #   RUN apk add --no-cache build-base python3
-COPY package*.json ./
+COPY app/package*.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/node_modules ./node_modules
 COPY app/ .
 EXPOSE 8000
-CMD ["node", "server.js"]
+CMD ["node", "server.ts"]

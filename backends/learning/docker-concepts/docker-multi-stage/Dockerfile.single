@@ -1,15 +1,15 @@
 # =============================================================================
 # SINGLE-STAGE DOCKERFILE — simple but a larger image
 #
-# Everything happens in one stage on the full node:20 base. The final image
+# Everything happens in one stage on the full node:22 base. The final image
 # keeps the npm cache, dev dependencies, and build cruft you don't need at
 # runtime. Compare its size to the multi-stage build.
 #
 # Build: docker build -f Dockerfile.single -t node-single .
 # =============================================================================
 
-# FROM — base image. node:20 is the full image (~1.1GB).
-FROM node:20
+# FROM — base image. node:22 is the full image (~1.1GB).
+FROM node:22
 WORKDIR /app
 
 # COPY manifests BEFORE source: the single most important caching trick.
@@ -24,4 +24,4 @@ COPY app/ .
 
 EXPOSE 8000
 # JSON (exec) form — runs directly, no shell. Override at runtime: docker run node-single bash
-CMD ["node", "server.js"]
+CMD ["node", "server.ts"]
