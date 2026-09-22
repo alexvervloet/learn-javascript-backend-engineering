@@ -25,6 +25,16 @@ services:
     depends_on:
       - prometheus
 
+  # Traces, for 04_tracing.ts. Jaeger speaks OTLP natively now, so nothing sits
+  # between the app and it — the app posts spans straight to :4318.
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"   # the UI — this is where the waterfall is
+      - "4318:4318"     # OTLP over HTTP, what the app exports to
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
 # Usage:
 #   1. Start the app:          node 03_combined.js
 #   2. Start this stack:       docker compose up -d
