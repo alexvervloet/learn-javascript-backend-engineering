@@ -108,7 +108,7 @@ supplies it.
 
 Two files are deliberately still JavaScript:
 `backends/learning/aws-concepts/lambda/functions/*/handler.js` are zipped and
-uploaded to AWS Lambda, whose `nodejs20.x` runtime executes JavaScript and whose
+uploaded to AWS Lambda, whose `nodejs22.x` runtime executes JavaScript and whose
 configured handler names `handler.js`. Each says so at the top.
 
 ### Dependencies live in one place
