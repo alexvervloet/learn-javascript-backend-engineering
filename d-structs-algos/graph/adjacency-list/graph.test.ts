@@ -61,6 +61,15 @@ describe("depthFirstSearch", () => {
   test.each(cases)("DFS %#", ({ edges, start, expected }) => {
     expect(buildGraph(edges).depthFirstSearch(start)).toEqual(expected);
   });
+
+  // DFS used to report a vertex that is not in the graph as though it had
+  // visited it, because it pushed the start vertex before checking anything.
+  // BFS has always returned [] for that, and the two should agree.
+  test("a start vertex that is not in the graph visits nothing", () => {
+    const graph = buildGraph([[0, 1], [1, 2]]);
+    expect(graph.depthFirstSearch(99)).toEqual([]);
+    expect(graph.breadthFirstSearch(99)).toEqual([]);
+  });
 });
 
 describe("adjacentNodes", () => {
