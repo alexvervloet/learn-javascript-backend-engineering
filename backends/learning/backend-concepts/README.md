@@ -16,8 +16,10 @@ Each subfolder is a self-contained runnable example.
 | [pagination/](pagination/) | Offset vs cursor pagination | Express + better-sqlite3 |
 | [rate-limiting/](rate-limiting/) | Fixed/sliding window, token bucket, middleware | ioredis (Lua) + Express |
 | [testing/](testing/) | Route + dependency integration testing | Jest + supertest + Zod |
+| [web-security/](web-security/) | Security headers, SQL injection, XSS, CSRF | helmet + Express + better-sqlite3 |
 | [webhooks/](webhooks/) | Receiving, signing, retries, idempotency | Express + node:crypto |
 | [websockets/](websockets/) | Real-time bidirectional comms + SSE | ws + Express |
 
 Most folders are runnable demos (some need Redis/Kafka via their `docker-compose.yml`).
-`testing/` contains real Jest tests that run as part of `npm test`.
+`testing/`, `web-security/` and `node-runtime/` contain real Jest tests that run as
+part of `npm test`.
