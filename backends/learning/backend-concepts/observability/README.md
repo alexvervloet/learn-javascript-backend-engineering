@@ -16,8 +16,12 @@ The three pillars — logs, metrics, traces — with [`pino`](https://getpino.io
 
 ```bash
 npm install                 # from the repo root (pino, pino-pretty, prom-client)
-npx tsx 01_structured_logging.ts
-npx tsx 03_combined.ts         # Express app on :8000
-docker compose up -d        # Prometheus + Grafana (scrapes host:8000/metrics)
+npx tsx 01_structured_logging.ts  # prints and exits
+npx tsx 02_metrics.ts             # server on :8000, metrics at /metrics
+npx tsx 03_combined.ts            # server on :8000, logs + metrics + request ids
+docker compose up -d              # Prometheus + Grafana (scrapes host:8000/metrics)
 ```
+
+`02` and `03` both bind port 8000, so run one at a time. Prometheus scrapes
+whichever one is up.
 
