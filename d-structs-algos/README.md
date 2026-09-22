@@ -31,7 +31,8 @@ tests. Getting comfortable with that here costs nothing.
 | [searching/](searching/) | Binary search, binary search tree | search, insert, delete, traversals | O(log n) when balanced, O(n) when not |
 | [red-black-tree/](red-black-tree/) | Self-balancing BST | insert with rotations | O(log n) guaranteed |
 | [sorting/](sorting/) | Bubble, insertion, selection, merge, quick | sort | O(n²) for the first three, O(n log n) for the last two |
-| [graph/](graph/) | Adjacency list and adjacency matrix | add edge, BFS | list vs matrix is a space/lookup trade |
+| [heap/](heap/) | Binary min-heap, priority queue | push, pop, peek | O(log n) push/pop, O(1) peek |
+| [graph/](graph/) | Adjacency list, adjacency matrix, Dijkstra | add edge, BFS, DFS, shortest path | list vs matrix is a space/lookup trade; Dijkstra is O((V+E) log V) |
 | [p-v-np/](p-v-np/) | Subset sum, travelling salesman | solve vs verify | exponential to solve, polynomial to check |
 
 ## Running things

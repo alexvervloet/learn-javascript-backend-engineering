@@ -9,6 +9,9 @@ cheap.
 | [adjacency-list/](adjacency-list/) | `Map<number, Set<number>>` | O(V + E) | O(1) | O(degree) |
 | [matrix/](matrix/) | `boolean[][]` | O(V²) | O(1) | O(V) |
 
+[dijkstra/](dijkstra/) builds on the list form: the same idea with weights on the
+edges, and the shortest-path algorithm that needs them.
+
 ## Picking one
 
 Count the edges. A graph is **sparse** when E is close to V, **dense** when it is
@@ -45,10 +48,13 @@ it breadth-first. Swap the queue for a stack and you get depth-first.
 
 On an unweighted graph, BFS finds the shortest path by number of hops, because it
 reaches every vertex at its minimum distance. Add weights and that stops being
-true, which is where Dijkstra comes in.
+true, which is where [dijkstra/](dijkstra/) comes in.
 
-Note `explore.shift()` is O(n), so this BFS is not as fast as it looks — the same
-array-as-queue cost described in [queue/](../queue/).
+Both traversals keep membership in a `Set` rather than testing an array with
+`.includes()`, and the BFS queue walks a head index rather than calling
+`shift()`. Either shortcut would put an O(V) scan inside the loop and quietly
+turn an O(V + E) traversal into O(V·E) — see [queue/](../queue/) for the same
+array-as-queue cost in isolation.
 
 ## Run
 
