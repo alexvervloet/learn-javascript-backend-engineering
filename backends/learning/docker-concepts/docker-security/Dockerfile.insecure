@@ -6,8 +6,8 @@
 #   docker history app-insecure | grep -i SECRET                            → value visible
 # =============================================================================
 
-# [ISSUE 1] Unpinned base — "node:20" moves over time; builds aren't reproducible.
-FROM node:20
+# [ISSUE 1] Unpinned base — "node:22" moves over time; builds aren't reproducible.
+FROM node:22
 
 # [ISSUE 2] Secrets baked into the image. ARG values appear in `docker history`;
 # ENV values appear in `docker inspect` — readable by anyone with docker access.
@@ -30,4 +30,4 @@ RUN npm install --omit=dev --prefix app
 # the container then has root; on misconfigured hosts that can escape to the host.
 
 EXPOSE 8000
-CMD ["node", "app/server.js"]
+CMD ["node", "app/server.ts"]

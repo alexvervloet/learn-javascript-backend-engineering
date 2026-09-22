@@ -5,8 +5,8 @@
 # =============================================================================
 
 # [FIX 1] Pin version + OS variant (not :latest, not major-only). For maximum
-# reproducibility also pin the digest: FROM node:20-bookworm-slim@sha256:...
-FROM node:20-bookworm-slim AS builder
+# reproducibility also pin the digest: FROM node:22-bookworm-slim@sha256:...
+FROM node:22-bookworm-slim AS builder
 WORKDIR /build
 COPY app/package*.json ./
 # [FIX 5] Cache mount for npm downloads (kept out of image layers). Build-time
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 # Runtime stage
 # =============================================================================
 # [FIX 3] Minimal base — slim, ~200MB vs ~1.1GB full. Smaller attack surface.
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 # [FIX 6] Create a non-root user before anything else (must be done as root).
 RUN groupadd --system --gid 1001 appgroup && \
@@ -38,4 +38,4 @@ USER appuser
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=10s \
   CMD node -e "fetch('http://localhost:8000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "server.js"]
+CMD ["node", "server.ts"]
