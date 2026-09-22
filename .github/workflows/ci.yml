@@ -79,3 +79,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker compose build
         working-directory: backends/${{ matrix.app }}
+
+  # The docker-concepts module is eleven Dockerfiles that nothing used to check.
+  # Seven of them stopped building and the other four started and immediately
+  # exited, which is why this builds AND starts each one.
+  docker-concepts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/check-docker-concepts.sh
