@@ -106,16 +106,21 @@ async function runOpenAI(): Promise<void> {
     }
 
     messages.push(msg);
-    // tool_calls is optional — the model may answer without calling anything —
-  // and each entry is a union of a function call and a custom-tool call. Only
-  // the function variant carries `.function`, so it is narrowed first.
-  for (const tc of msg.tool_calls ?? []) {
-    if (tc.type !== "function") continue;
+    // Each entry is a union of a function call and a custom-tool call. Only the
+    // function variant carries `.function`, so it is narrowed first.
+    for (const tc of msg.tool_calls) {
+      if (tc.type !== "function") continue;
       // Arguments arrive as a JSON string the model produced, so the parsed
-    // shape is a claim rather than a guarantee.
-    const args = JSON.parse(tc.function.arguments) as Record<string, string>;
+      // shape is a claim rather than a guarantee.
+      const args = JSON.parse(tc.function.arguments) as Record<string, string>;
       console.log(`  call: ${tc.function.name}(${JSON.stringify(args)})`);
-      const output = TOOLS[tc.function.name](args.country);
+      // Same guard as the Anthropic branch above. The model picks the name, so
+      // a miss is possible input rather than a bug — and indexing a Record with
+      // an unknown key gives you `undefined`, which fails as "not a function"
+      // several frames from the cause.
+      const tool = TOOLS[tc.function.name];
+      if (!tool) throw new Error(`Model asked for an unknown tool: ${tc.function.name}`);
+      const output = tool(args.country);
       messages.push({ role: "tool", tool_call_id: tc.id, content: output });
     }
   }
