@@ -19,8 +19,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -39,8 +39,8 @@ jobs:
       matrix:
         node-version: ["22", "24"] # 22.18 is the floor: see the engines field
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -56,8 +56,8 @@ jobs:
       matrix:
         project: [bookmark-manager, web-framework-tutorial, web-framework-advanced]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -76,7 +76,7 @@ jobs:
       matrix:
         app: [bookmark-manager, url-shortener]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker compose build
         working-directory: backends/${{ matrix.app }}
 
@@ -86,5 +86,5 @@ jobs:
   docker-concepts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: scripts/check-docker-concepts.sh
