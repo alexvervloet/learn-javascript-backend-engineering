@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:22-slim
 WORKDIR /app
 COPY app/package*.json ./
 RUN npm install --omit=dev
@@ -12,4 +12,4 @@ EXPOSE 8000
 # Find it:  docker compose logs app  (shows "listening on ...:9000")
 # Fix:      remove this ENV (or set PORT=8000)
 ENV PORT=9000
-CMD ["node", "server.js"]
+CMD ["node", "server.ts"]
