@@ -54,7 +54,7 @@ Pinned digests don't auto-patch — use Renovate/Dependabot to bump monthly.
   trivy image <image>                  # open source
   trivy image --exit-code 1 --severity CRITICAL <image>   # fail CI on criticals
 Fewer packages = fewer CVEs: full > slim > alpine > distroless
-(gcr.io/distroless/nodejs20-debian12 — no shell, smallest surface; :debug for a shell).
+(gcr.io/distroless/nodejs22-debian12 — no shell, smallest surface; :debug for a shell).
 
 --- CHECKLIST ---
 
